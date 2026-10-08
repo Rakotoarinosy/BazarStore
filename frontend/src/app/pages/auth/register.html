@@ -1,0 +1,90 @@
+<main class="auth-shell">
+    <a class="auth-back-link" routerLink="/" aria-label="Retour à la boutique">
+        <i class="pi pi-arrow-left"></i>
+        <span>Retour à la boutique</span>
+    </a>
+
+    <section class="auth-layout auth-layout-register" aria-label="Créer un compte BazaStore">
+        <aside class="auth-showcase">
+            <a class="auth-brand" routerLink="/">
+                <span class="auth-brand-mark" aria-hidden="true"></span>
+                <span>Bazar<span>Store</span></span>
+            </a>
+            <div class="showcase-copy">
+                <span class="auth-eyebrow"><i class="pi pi-sparkles"></i> VOTRE PROCHAINE BELLE DÉCOUVERTE</span>
+                <h1>Un compte. Toute la boutique à portée de main.</h1>
+                <p>Créez votre espace pour garder vos coups de cœur et simplifier vos prochaines visites.</p>
+            </div>
+            <div class="showcase-products" aria-hidden="true">
+                <div class="showcase-product showcase-product-one"><img src="/demo/images/product/pink-purse.jpg" alt="" /></div>
+                <div class="showcase-product showcase-product-two"><img src="/demo/images/product/sneakers.jpg" alt="" /></div>
+                <div class="showcase-product showcase-product-three"><img src="/demo/images/product/galaxy-earrings.jpg" alt="" /></div>
+                <span class="showcase-spark showcase-spark-one">✳</span>
+                <span class="showcase-spark showcase-spark-two">✳</span>
+            </div>
+            <div class="showcase-caption"><i class="pi pi-star-fill"></i><span>Vos prochaines trouvailles commencent ici.</span></div>
+        </aside>
+
+        <div class="auth-form-panel">
+            <div class="auth-form-card">
+                <a class="auth-mobile-brand" routerLink="/">
+                    <span class="auth-brand-mark" aria-hidden="true"></span>
+                    <span>Bazar<span>Store</span></span>
+                </a>
+                <span class="auth-eyebrow">REJOIGNEZ BAZARSTORE</span>
+                <h2>Créer votre compte</h2>
+                <p class="auth-intro">Quelques détails suffisent pour commencer.</p>
+
+                <form class="auth-form" (submit)="submit($event)">
+                    <div class="auth-name-row">
+                        <div>
+                            <label for="register-first-name">Prénom</label>
+                            <div class="auth-input-wrap">
+                                <i class="pi pi-user" aria-hidden="true"></i>
+                                <input id="register-first-name" type="text" name="firstName" [(ngModel)]="firstName" autocomplete="given-name" placeholder="Votre prénom" required />
+                            </div>
+                        </div>
+                        <div>
+                            <label for="register-last-name">Nom</label>
+                            <div class="auth-input-wrap">
+                                <i class="pi pi-user" aria-hidden="true"></i>
+                                <input id="register-last-name" type="text" name="lastName" [(ngModel)]="lastName" autocomplete="family-name" placeholder="Votre nom" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <label for="register-email">Adresse e-mail</label>
+                    <div class="auth-input-wrap">
+                        <i class="pi pi-envelope" aria-hidden="true"></i>
+                        <input id="register-email" type="email" name="email" [(ngModel)]="email" autocomplete="email" placeholder="vous@exemple.com" required />
+                    </div>
+
+                    <label for="register-password">Mot de passe</label>
+                    <div class="auth-input-wrap">
+                        <i class="pi pi-lock" aria-hidden="true"></i>
+                        <input id="register-password" type="password" name="password" [(ngModel)]="password" autocomplete="new-password" placeholder="8 caractères minimum" minlength="8" required />
+                    </div>
+
+                    <label for="register-confirm-password">Confirmer le mot de passe</label>
+                    <div class="auth-input-wrap">
+                        <i class="pi pi-shield" aria-hidden="true"></i>
+                        <input id="register-confirm-password" type="password" name="confirmPassword" [(ngModel)]="confirmPassword" autocomplete="new-password" placeholder="Saisissez-le à nouveau" minlength="8" required />
+                    </div>
+
+                    <label class="auth-checkbox auth-terms">
+                        <input type="checkbox" name="acceptTerms" [(ngModel)]="acceptTerms" />
+                        <span class="custom-checkbox" aria-hidden="true"><i class="pi pi-check"></i></span>
+                        <span>J’accepte les <a href="#terms">conditions d’utilisation</a> et la <a href="#privacy">politique de confidentialité</a>.</span>
+                    </label>
+
+                    <button class="auth-submit" type="submit">Créer mon compte <i class="pi pi-arrow-right"></i></button>
+                    @if (statusMessage) {
+                        <p class="auth-status" role="status">{{ statusMessage }}</p>
+                    }
+                </form>
+
+                <p class="auth-switch">Vous avez déjà un compte ? <a routerLink="/auth/login">Se connecter</a></p>
+            </div>
+        </div>
+    </section>
+</main>

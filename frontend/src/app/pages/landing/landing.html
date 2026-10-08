@@ -1,0 +1,190 @@
+<div class="storefront">
+    <div class="announcement">
+        <span><i class="pi pi-sparkles"></i> Bienvenue chez BazaStore</span>
+        <a href="#products">Découvrir la sélection <i class="pi pi-arrow-right"></i></a>
+    </div>
+
+    <header class="site-header">
+        <a class="brand" href="#home" aria-label="BazaStore, accueil">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>Bazar<span>Store</span></span>
+        </a>
+
+        <nav class="desktop-nav" aria-label="Navigation principale">
+            <a href="#home">Accueil</a>
+            <a href="#categories">Catégories</a>
+            <a href="#products">Nos produits</a>
+            <a href="#services">Nos engagements</a>
+        </nav>
+
+        <div class="header-actions">
+            <label class="search-box">
+                <i class="pi pi-search" aria-hidden="true"></i>
+                <input
+                    type="search"
+                    placeholder="Rechercher un produit..."
+                    aria-label="Rechercher un produit"
+                    [value]="searchTerm"
+                    (input)="updateSearch($event)"
+                />
+                <kbd>/</kbd>
+            </label>
+            <a class="icon-action account-link" routerLink="/auth/login" aria-label="Se connecter">
+                <i class="pi pi-user"></i>
+            </a>
+            <button class="icon-action cart-action" type="button" (click)="cartOpen = !cartOpen" [attr.aria-expanded]="cartOpen" aria-label="Ouvrir le panier">
+                <i class="pi pi-shopping-bag"></i>
+                @if (cartItems.length) {
+                    <span class="cart-count">{{ cartItems.length }}</span>
+                }
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <section id="home" class="hero-section">
+            <div class="hero-copy">
+                <span class="eyebrow"><span></span> LE PLAISIR DE BIEN CHOISIR</span>
+                <h1>Les belles trouvailles<br />commencent <em>ici.</em></h1>
+                <p>Mode, accessoires et essentiels du quotidien : découvrez une sélection pensée pour vous, au même endroit.</p>
+                <div class="hero-actions">
+                    <a class="button button-dark" href="#products">Explorer la boutique <i class="pi pi-arrow-up-right"></i></a>
+                    <a class="text-link" href="#categories">Voir les catégories <i class="pi pi-arrow-down"></i></a>
+                </div>
+                <div class="hero-proof">
+                    <div class="proof-avatars" aria-hidden="true"><span>J</span><span>M</span><span>A</span></div>
+                    <div><strong>Une boutique, mille idées</strong><small>Pour se faire plaisir et faire plaisir</small></div>
+                </div>
+            </div>
+
+            <div class="hero-visual">
+                <div class="hero-orbit"></div>
+                <span class="hero-sticker"><i class="pi pi-sparkles"></i> Coups de cœur<br />du moment</span>
+                <img class="hero-product hero-product-main" src="/demo/images/product/gaming-set.jpg" alt="Ensemble de jeu sélectionné par BazaStore" />
+                <img class="hero-product hero-product-small" src="/demo/images/product/green-earbuds.jpg" alt="Écouteurs sans fil verts" />
+                <div class="hero-note"><span class="note-icon"><i class="pi pi-heart-fill"></i></span><span><strong>Votre prochain favori</strong><small>est peut-être juste ici</small></span></div>
+                <span class="hero-spark spark-one">✳</span>
+                <span class="hero-spark spark-two">✳</span>
+            </div>
+        </section>
+
+        <section id="services" class="service-strip" aria-label="Nos engagements">
+            <div><i class="pi pi-th-large"></i><span><strong>Un large choix</strong><small>Des idées pour tous les jours</small></span></div>
+            <div><i class="pi pi-search"></i><span><strong>Explorez facilement</strong><small>Parcourez nos catégories</small></span></div>
+            <div><i class="pi pi-heart"></i><span><strong>Vos coups de cœur</strong><small>Gardez vos favoris à portée</small></span></div>
+            <div><i class="pi pi-shopping-bag"></i><span><strong>BazaStore</strong><small>Une boutique à votre image</small></span></div>
+        </section>
+
+        <section id="categories" class="section-block category-section">
+            <div class="section-heading">
+                <div><span class="eyebrow">TROUVEZ VOTRE STYLE</span><h2>Explorer par catégorie</h2></div>
+                <p>Des idées pour chaque envie, réunies dans une seule boutique.</p>
+            </div>
+            <div class="category-grid">
+                <button class="category-card category-fashion" type="button" (click)="selectCategory('Clothing')">
+                    <span class="category-icon"><i class="pi pi-sparkles"></i></span>
+                    <span class="category-name">Mode & style</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
+                    <img src="/demo/images/product/blue-t-shirt.jpg" alt="" />
+                </button>
+                <button class="category-card category-tech" type="button" (click)="selectCategory('Electronics')">
+                    <span class="category-icon"><i class="pi pi-bolt"></i></span>
+                    <span class="category-name">High-tech</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
+                    <img src="/demo/images/product/headphones.jpg" alt="" />
+                </button>
+                <button class="category-card category-accessories" type="button" (click)="selectCategory('Accessories')">
+                    <span class="category-icon"><i class="pi pi-star"></i></span>
+                    <span class="category-name">Accessoires</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
+                    <img src="/demo/images/product/brown-purse.jpg" alt="" />
+                </button>
+            </div>
+        </section>
+
+        <section id="products" class="section-block products-section">
+            <div class="section-heading products-heading">
+                <div><span class="eyebrow">SÉLECTION BAZARSTORE</span><h2>Les trouvailles du moment</h2></div>
+                <a class="text-link" href="#categories" (click)="selectCategory('')">Tout le catalogue <i class="pi pi-arrow-right"></i></a>
+            </div>
+            <div class="catalog-notice"><i class="pi pi-info-circle"></i> Catalogue et prix affichés à titre de démonstration.</div>
+            <div class="filter-row" aria-label="Filtrer les produits">
+                <button type="button" [class.active]="selectedCategory === ''" (click)="selectCategory('')">Tout voir</button>
+                <button type="button" [class.active]="selectedCategory === 'Clothing'" (click)="selectCategory('Clothing')">Mode</button>
+                <button type="button" [class.active]="selectedCategory === 'Electronics'" (click)="selectCategory('Electronics')">High-tech</button>
+                <button type="button" [class.active]="selectedCategory === 'Accessories'" (click)="selectCategory('Accessories')">Accessoires</button>
+                <button type="button" [class.active]="selectedCategory === 'Fitness'" (click)="selectCategory('Fitness')">Sport & bien-être</button>
+            </div>
+
+            <div class="product-grid">
+                @for (product of filteredProducts; track product.id) {
+                    <article class="product-card">
+                        <div class="product-image-wrap">
+                            <img [src]="'/demo/images/product/' + product.image" [alt]="product.name || 'Produit BazaStore'" loading="lazy" />
+                            @if (product.inventoryStatus === 'OUTOFSTOCK') {
+                                <span class="product-badge badge-muted">Bientôt disponible</span>
+                            } @else if (product.rating && product.rating >= 5) {
+                                <span class="product-badge">Coup de cœur</span>
+                            }
+                            <button class="favorite-button" type="button" (click)="toggleFavorite(product.id)" [attr.aria-label]="isFavorite(product.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'" [attr.aria-pressed]="isFavorite(product.id)">
+                                <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                            </button>
+                            @if (product.inventoryStatus !== 'OUTOFSTOCK') {
+                                <button class="quick-add" type="button" (click)="addToCart(product)"><i class="pi pi-plus"></i> Ajouter au panier</button>
+                            }
+                        </div>
+                        <div class="product-details">
+                            <span class="product-category">{{ categoryLabel(product.category) }}</span>
+                            <h3>{{ product.name }}</h3>
+                            <div class="product-meta">
+                                <span class="product-price">{{ product.price | currency: 'USD' : 'symbol' : '1.0-0' }}</span>
+                                @if (product.rating) {
+                                    <span class="product-rating"><i class="pi pi-star-fill"></i> {{ product.rating }}.0</span>
+                                }
+                            </div>
+                        </div>
+                    </article>
+                } @empty {
+                    <div class="empty-state"><i class="pi pi-search"></i><strong>Aucun produit trouvé</strong><span>Essayez un autre mot-clé ou une autre catégorie.</span></div>
+                }
+            </div>
+        </section>
+
+        <section class="newsletter-section">
+            <div class="newsletter-icon"><i class="pi pi-envelope"></i></div>
+            <div><span class="eyebrow">RESTONS EN CONTACT</span><h2>Les nouveautés, sans en manquer une.</h2><p>Inscrivez-vous pour recevoir nos inspirations et nos prochaines sélections.</p></div>
+            <form class="newsletter-form" (submit)="subscribe($event)">
+                <label class="sr-only" for="newsletter-email">Votre adresse e-mail</label>
+                <input id="newsletter-email" type="email" placeholder="Votre adresse e-mail" required [value]="newsletterEmail" (input)="updateNewsletterEmail($event)" />
+                <button class="button button-dark" type="submit">Je m'inscris <i class="pi pi-arrow-right"></i></button>
+                @if (subscriptionMessage) { <span class="subscription-message" role="status">{{ subscriptionMessage }}</span> }
+            </form>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <a class="brand footer-brand" href="#home"><span class="brand-mark" aria-hidden="true"></span><span>Bazar<span>Store</span></span></a>
+        <p>De belles trouvailles, simplement.</p>
+        <div class="footer-links"><a href="#categories">Catégories</a><a href="#products">Boutique</a><a routerLink="/auth/login">Mon compte</a></div>
+        <span class="copyright">© 2026 BazaStore. Tous droits réservés.</span>
+    </footer>
+
+    @if (cartOpen) {
+        <div class="cart-backdrop" (click)="cartOpen = false"></div>
+        <aside class="cart-drawer" aria-label="Votre panier">
+            <div class="cart-header"><div><span class="eyebrow">BAZARSTORE</span><h2>Votre panier <span>({{ cartItems.length }})</span></h2></div><button type="button" class="icon-action" aria-label="Fermer le panier" (click)="cartOpen = false"><i class="pi pi-times"></i></button></div>
+            @if (cartItems.length) {
+                <div class="cart-list">
+                    @for (product of cartItems; track $index) {
+                        <div class="cart-line">
+                            <img [src]="'/demo/images/product/' + product.image" [alt]="product.name ?? 'Produit'" />
+                            <div><strong>{{ product.name }}</strong><span>{{ product.price | currency: 'USD' : 'symbol' : '1.0-0' }}</span></div>
+                            <button type="button" aria-label="Retirer un article" (click)="removeFromCart($index)"><i class="pi pi-trash"></i></button>
+                        </div>
+                    }
+                </div>
+                <div class="cart-total"><span>Sous-total indicatif</span><strong>{{ cartTotal | currency: 'USD' : 'symbol' : '1.0-0' }}</strong></div>
+                <p class="cart-disclaimer">Panier de démonstration : la commande et le paiement ne sont pas encore activés.</p>
+            } @else {
+                <div class="cart-empty"><i class="pi pi-shopping-bag"></i><strong>Votre panier attend ses premières trouvailles.</strong><button class="button button-dark" type="button" (click)="cartOpen = false">Continuer mes achats</button></div>
+            }
+        </aside>
+    }
+</div>
