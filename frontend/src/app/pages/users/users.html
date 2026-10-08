@@ -1,0 +1,127 @@
+<p-toast />
+<p-confirmdialog />
+
+<div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3 user-stats">
+    <div class="card mb-0 user-stat-card">
+        <div class="user-stat-copy"><span class="block text-muted-color font-medium mb-2 user-stat-label">Comptes actifs</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ activeCount }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-primary-100 dark:bg-primary-400/10 user-stat-icon"><i class="pi pi-users text-primary text-xl"></i></span>
+    </div>
+    <div class="card mb-0 user-stat-card">
+        <div class="user-stat-copy"><span class="block text-muted-color font-medium mb-2 user-stat-label">Clients</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ customerCount }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-blue-100 dark:bg-blue-400/10 user-stat-icon"><i class="pi pi-user text-blue-500 text-xl"></i></span>
+    </div>
+    <div class="card mb-0 user-stat-card">
+        <div class="user-stat-copy"><span class="block text-muted-color font-medium mb-2 user-stat-label">Équipe backoffice</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ staffCount }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-orange-100 dark:bg-orange-400/10 user-stat-icon"><i class="pi pi-briefcase text-orange-500 text-xl"></i></span>
+    </div>
+</div>
+
+<div class="card">
+    <p-toolbar styleClass="mb-5">
+        <ng-template #start>
+            <p-button label="Nouvel utilisateur" icon="pi pi-plus" (onClick)="openNew()" />
+        </ng-template>
+        <ng-template #end>
+            <span class="p-input-icon-left">
+                <i class="pi pi-search"></i>
+                <input pInputText type="search" placeholder="Rechercher un utilisateur..." aria-label="Rechercher un utilisateur" (input)="onSearch($event)" />
+            </span>
+        </ng-template>
+    </p-toolbar>
+
+    <p-table
+        #usersTable
+        [value]="users()"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [globalFilterFields]="['name', 'email', 'role']"
+        [rowHover]="true"
+        dataKey="id"
+        responsiveLayout="scroll"
+        currentPageReportTemplate="{first}–{last} sur {totalRecords} utilisateurs"
+        [showCurrentPageReport]="true"
+    >
+        <ng-template #caption>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-semibold m-0">Gestion des utilisateurs</h2>
+                    <p class="text-muted-color mt-2 mb-0">Consulte les comptes et gère leurs accès au backoffice.</p>
+                </div>
+                <span class="text-muted-color">{{ users().length }} compte(s)</span>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="name">Nom <p-sortIcon field="name" /></th>
+                <th pSortableColumn="email">Adresse e-mail <p-sortIcon field="email" /></th>
+                <th pSortableColumn="role">Rôle <p-sortIcon field="role" /></th>
+                <th>Statut</th>
+                <th pSortableColumn="created_at">Créé le <p-sortIcon field="created_at" /></th>
+                <th style="width: 9rem">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-user>
+            <tr>
+                <td><div class="font-medium">{{ user.name }}</div><small class="text-muted-color">{{ user.id }}</small></td>
+                <td>{{ user.email }}</td>
+                <td><p-tag [value]="roleLabel(user.role)" [severity]="roleSeverity(user.role)" /></td>
+                <td><p-tag [value]="user.is_active ? 'Actif' : 'Désactivé'" [severity]="user.is_active ? 'success' : 'danger'" /></td>
+                <td>{{ user.created_at | date: 'dd/MM/yyyy' }}</td>
+                <td>
+                    <div class="flex items-center gap-2">
+                        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" aria-label="Modifier l’utilisateur" (onClick)="editUser(user)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" aria-label="Supprimer l’utilisateur" [disabled]="isCurrentUser(user)" (onClick)="deleteUser(user)" />
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr><td colspan="6" class="text-center py-8 text-muted-color">Aucun utilisateur à afficher.</td></tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(92vw, 34rem)' }" [header]="editingUser ? 'Modifier un utilisateur' : 'Créer un utilisateur'" (onHide)="submitted = false">
+    <form class="flex flex-col gap-5 pt-2" (ngSubmit)="saveUser()">
+        <div>
+            <label for="user-name" class="block font-semibold mb-2">Nom complet</label>
+            <input id="user-name" pInputText class="w-full" name="name" [(ngModel)]="form.name" required maxlength="255" autocomplete="name" />
+            @if (submitted && !form.name.trim()) { <small class="text-red-500">Le nom est obligatoire.</small> }
+        </div>
+        <div>
+            <label for="user-email" class="block font-semibold mb-2">Adresse e-mail</label>
+            <input id="user-email" pInputText class="w-full" type="email" name="email" [(ngModel)]="form.email" required maxlength="320" autocomplete="email" />
+            @if (submitted && !form.email.trim()) { <small class="text-red-500">L’adresse e-mail est obligatoire.</small> }
+        </div>
+        <div>
+            <label for="user-role" class="block font-semibold mb-2">Rôle</label>
+            <select id="user-role" class="w-full p-3 border border-surface rounded-border bg-surface-0 dark:bg-surface-900" name="role" [(ngModel)]="form.role" [disabled]="editingUser ? isCurrentUser(editingUser) : false">
+                @for (role of roleOptions; track role.value) { <option [value]="role.value">{{ role.label }}</option> }
+            </select>
+            @if (editingUser && isCurrentUser(editingUser)) { <small class="text-muted-color">Tu ne peux pas modifier ton propre rôle.</small> }
+        </div>
+        @if (editingUser) {
+            <div>
+                <label for="user-status" class="block font-semibold mb-2">Compte</label>
+                <select id="user-status" class="w-full p-3 border border-surface rounded-border bg-surface-0 dark:bg-surface-900" name="is_active" [(ngModel)]="form.is_active" [disabled]="isCurrentUser(editingUser)">
+                    <option [ngValue]="true">Actif</option>
+                    <option [ngValue]="false">Désactivé</option>
+                </select>
+                @if (isCurrentUser(editingUser)) { <small class="text-muted-color">Tu ne peux pas désactiver ton propre compte ici.</small> }
+            </div>
+        }
+        <div>
+            <label for="user-password" class="block font-semibold mb-2">{{ editingUser ? 'Nouveau mot de passe (facultatif)' : 'Mot de passe temporaire' }}</label>
+            <input id="user-password" pInputText class="w-full" type="password" name="password" [(ngModel)]="form.password" [required]="!editingUser" minlength="10" maxlength="128" autocomplete="new-password" />
+            <small class="text-muted-color">10 caractères minimum, avec une minuscule, une majuscule et un chiffre.</small>
+            @if (submitted && !editingUser && !form.password) { <small class="block text-red-500">Le mot de passe initial est obligatoire.</small> }
+            @if (submitted && form.password && !isStrongPassword(form.password)) { <small class="block text-red-500">Le mot de passe ne respecte pas la politique.</small> }
+        </div>
+    </form>
+    <ng-template #footer>
+        <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="dialogVisible = false" />
+        <p-button [label]="saving() ? 'Enregistrement...' : 'Enregistrer'" icon="pi pi-check" [disabled]="saving()" (onClick)="saveUser()" />
+    </ng-template>
+</p-dialog>

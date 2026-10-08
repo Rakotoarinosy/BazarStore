@@ -73,6 +73,12 @@
                         <i class="pi pi-user"></i>
                         <span>Profile</span>
                     </button>
+                    @if (auth.currentUser()) {
+                        <button type="button" class="layout-topbar-action" (click)="logout()" [disabled]="loggingOut" title="Se déconnecter" aria-label="Se déconnecter">
+                            <i class="pi pi-sign-out"></i>
+                            <span>{{ loggingOut ? 'Déconnexion...' : 'Déconnexion' }}</span>
+                        </button>
+                    }
                 </div>
             </div>
         </div>

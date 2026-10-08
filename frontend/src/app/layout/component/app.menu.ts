@@ -17,7 +17,11 @@ export class AppMenu {
         this.model = [
             {
                 label: 'Backoffice',
-                items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/backoffice/dashboard'] }]
+                items: [
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/backoffice/dashboard'] },
+                    { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/backoffice/users'] },
+                    { label: 'Catégories', icon: 'pi pi-fw pi-tags', routerLink: ['/backoffice/categories'] }
+                ]
             },
             {
                 label: 'UI Components',

@@ -1,0 +1,111 @@
+<p-toast />
+<p-confirmdialog />
+
+<div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3 category-stats">
+    <div class="card mb-0 category-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">Catégories au total</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ categories().length }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-primary-100 dark:bg-primary-400/10 category-stat-icon"><i class="pi pi-tags text-primary text-xl"></i></span>
+    </div>
+    <div class="card mb-0 category-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">Actives dans la boutique</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ activeCount }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-green-100 dark:bg-green-400/10 category-stat-icon"><i class="pi pi-check-circle text-green-500 text-xl"></i></span>
+    </div>
+    <div class="card mb-0 category-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">Désactivées</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ inactiveCount }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-orange-100 dark:bg-orange-400/10 category-stat-icon"><i class="pi pi-eye-slash text-orange-500 text-xl"></i></span>
+    </div>
+</div>
+
+<div class="card">
+    <p-toolbar styleClass="mb-5">
+        <ng-template #start>
+            <p-button label="Nouvelle catégorie" icon="pi pi-plus" (onClick)="openNew()" />
+        </ng-template>
+        <ng-template #end>
+            <span class="p-input-icon-left">
+                <i class="pi pi-search"></i>
+                <input pInputText type="search" placeholder="Rechercher une catégorie..." aria-label="Rechercher une catégorie" (input)="onSearch($event)" />
+            </span>
+        </ng-template>
+    </p-toolbar>
+
+    <p-table
+        #categoriesTable
+        [value]="categories()"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [globalFilterFields]="['name', 'slug', 'description']"
+        [rowHover]="true"
+        dataKey="id"
+        responsiveLayout="scroll"
+        currentPageReportTemplate="{first}–{last} sur {totalRecords} catégories"
+        [showCurrentPageReport]="true"
+    >
+        <ng-template #caption>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-semibold m-0">Gestion des catégories</h2>
+                    <p class="text-muted-color mt-2 mb-0">Organise les marchandises et contrôle leur visibilité dans la boutique.</p>
+                </div>
+                <span class="text-muted-color">{{ categories().length }} catégorie(s)</span>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="name">Nom <p-sortIcon field="name" /></th>
+                <th pSortableColumn="slug">Identifiant URL <p-sortIcon field="slug" /></th>
+                <th>Description</th>
+                <th>Visibilité</th>
+                <th pSortableColumn="created_at">Créée le <p-sortIcon field="created_at" /></th>
+                <th style="width: 9rem">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-category>
+            <tr>
+                <td class="font-medium">{{ category.name }}</td>
+                <td><code>{{ category.slug }}</code></td>
+                <td class="category-description">{{ category.description || '—' }}</td>
+                <td><p-tag [value]="category.is_active ? 'Active' : 'Désactivée'" [severity]="category.is_active ? 'success' : 'secondary'" /></td>
+                <td>{{ category.created_at | date: 'dd/MM/yyyy' }}</td>
+                <td>
+                    <div class="flex items-center gap-2">
+                        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" aria-label="Modifier la catégorie" (onClick)="editCategory(category)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" aria-label="Supprimer la catégorie" (onClick)="deleteCategory(category)" />
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr><td colspan="6" class="text-center py-8 text-muted-color">Aucune catégorie à afficher.</td></tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(92vw, 36rem)' }" [header]="editingCategory ? 'Modifier une catégorie' : 'Créer une catégorie'" (onHide)="submitted = false">
+    <form class="flex flex-col gap-5 pt-2" (ngSubmit)="saveCategory()">
+        <div>
+            <label for="category-name" class="block font-semibold mb-2">Nom de la catégorie</label>
+            <input id="category-name" pInputText class="w-full" name="name" [(ngModel)]="form.name" required minlength="2" maxlength="120" autocomplete="off" />
+            @if (submitted && form.name.trim().length < 2) { <small class="text-red-500">Le nom doit contenir au moins 2 caractères.</small> }
+        </div>
+        <div>
+            <label for="category-slug" class="block font-semibold mb-2">Identifiant URL (slug)</label>
+            <input id="category-slug" pInputText class="w-full" name="slug" [(ngModel)]="form.slug" maxlength="140" placeholder="Généré automatiquement depuis le nom" autocomplete="off" />
+            <small class="text-muted-color">Laisse vide pour le générer depuis le nom, par exemple « Mode & accessoires » → « mode-accessoires ».</small>
+        </div>
+        <div>
+            <label for="category-description" class="block font-semibold mb-2">Description</label>
+            <textarea id="category-description" class="w-full p-3 border border-surface rounded-border bg-surface-0 dark:bg-surface-900" name="description" [(ngModel)]="form.description" rows="4" maxlength="2000"></textarea>
+        </div>
+        <div class="flex items-center gap-3">
+            <input id="category-active" type="checkbox" name="is_active" [(ngModel)]="form.is_active" />
+            <label for="category-active">Visible dans la boutique</label>
+        </div>
+    </form>
+    <ng-template #footer>
+        <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="dialogVisible = false" />
+        <p-button [label]="saving() ? 'Enregistrement...' : 'Enregistrer'" icon="pi pi-check" [disabled]="saving()" (onClick)="saveCategory()" />
+    </ng-template>
+</p-dialog>

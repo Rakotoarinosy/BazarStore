@@ -1,0 +1,33 @@
+.user-stats {
+    align-items: stretch;
+}
+
+.user-stat-card {
+    box-sizing: border-box;
+    height: 6.5rem;
+    min-height: 6.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.user-stat-copy {
+    min-width: 0;
+}
+
+.user-stat-label {
+    white-space: nowrap;
+}
+
+.user-stat-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 2.5rem;
+}
+
+@media (max-width: 420px) {
+    .user-stat-label {
+        white-space: normal;
+    }
+}

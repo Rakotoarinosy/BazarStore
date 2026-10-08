@@ -10,6 +10,7 @@ from starlette.responses import HTMLResponse
 
 from src.bootstrap import ensure_bootstrap_admin
 from src.features.auth.router import router as auth_router
+from src.features.category.router import router as category_router
 from src.features.user.router import router as user_router
 from src.infrastructure.config import configure_logging, get_settings
 from src.shared.errors import register_exception_handlers
@@ -19,6 +20,7 @@ API_PREFIX = "/api/v1"
 FEATURE_ROUTERS: list[APIRouter] = [
     auth_router,
     user_router,
+    category_router,
 ]
 
 
