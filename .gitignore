@@ -1,0 +1,5 @@
+# Les exports et scripts SQL locaux ne doivent jamais être versionnés.
+*.sql
+
+# Configuration Google propre à chaque poste de développement.
+frontend/public/runtime-config.local.json

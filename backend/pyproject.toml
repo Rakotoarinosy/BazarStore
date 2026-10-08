@@ -1,0 +1,92 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "API REST BazarStore — FastAPI + SQLAlchemy"
+readme = "README.md"
+authors = [
+    { name = "Rakotoarinosy", email = "fehizoroarinosy@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "a2wsgi>=1.10",               # Adaptateur ASGI → WSGI pour Passenger (passenger_wsgi.py)
+    "alembic>=1.14",
+    "argon2-cffi>=25.1.0",
+    "email-validator>=2.2",       # Requis par pydantic.EmailStr
+    "fastapi>=0.115",
+    "google-genai>=1.0",
+    "mistralai>=3.0.0",
+    "psycopg[binary]>=3.2",       # Driver PostgreSQL (base de dev de l'équipe et prod)
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "pyjwt>=2.15.1",
+    "scalar-fastapi>=1.0",
+    "sqlalchemy>=2.0",
+    "starlette>=1.7.0",
+    "uvicorn[standard]>=0.32",
+]
+
+[project.optional-dependencies]
+dev = [
+    "anyio>=4.0",                 # Plugin pytest des tests async (pytest.mark.anyio)
+    "black>=24.10",
+    "httpx>=0.28",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+# ─── Qualité de code ────────────────────────────────────────────────
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # tri des imports
+    "B",        # bugbear
+    "UP",       # syntaxe Python moderne
+    "N",        # nommage PEP 8
+    "SIM",      # simplifications
+    "RUF",      # règles ruff
+]
+# B008 : Depends() en valeur par défaut est l'idiome FastAPI.
+# E501 : la longueur des lignes de code est gérée par black.
+ignore = ["B008", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+# Le dossier local alembic/ (migrations) ne doit pas masquer la bibliothèque.
+known-third-party = ["alembic"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["^alembic/versions/"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ─── Tests ──────────────────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"

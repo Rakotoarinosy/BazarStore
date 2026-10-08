@@ -490,7 +490,16 @@
     }
 }
 
-.auth-google-button {
+.auth-google-button-host {
+    width: 100%;
+    min-height: 40px;
+
+    &:empty {
+        min-height: 0;
+    }
+}
+
+.auth-google-fallback {
     display: flex;
     width: 100%;
     min-height: 46px;
@@ -505,15 +514,10 @@
     font: inherit;
     font-size: 0.77rem;
     font-weight: 650;
-    transition:
-        border-color 160ms ease,
-        background 160ms ease,
-        box-shadow 160ms ease;
 
     &:hover {
         border-color: #b9c4d2;
         background: #fafbfc;
-        box-shadow: 0 3px 10px rgb(23 39 68 / 6%);
     }
 
     &:focus-visible {

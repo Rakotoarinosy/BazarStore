@@ -1,11 +1,11 @@
 <div class="storefront">
     <div class="announcement">
-        <span><i class="pi pi-sparkles"></i> Bienvenue chez BazaStore</span>
+        <span><i class="pi pi-sparkles"></i> Bienvenue chez BazarStore</span>
         <a href="#products">Découvrir la sélection <i class="pi pi-arrow-right"></i></a>
     </div>
 
     <header class="site-header">
-        <a class="brand" href="#home" aria-label="BazaStore, accueil">
+        <a class="brand" href="#home" aria-label="BazarStore, accueil">
             <span class="brand-mark" aria-hidden="true"></span>
             <span>Bazar<span>Store</span></span>
         </a>
@@ -29,15 +29,30 @@
                 />
                 <kbd>/</kbd>
             </label>
-            <a class="icon-action account-link" routerLink="/auth/login" aria-label="Se connecter">
-                <i class="pi pi-user"></i>
-            </a>
+            @if (auth.currentUser(); as user) {
+                @if (showBackofficeLink) {
+                    <a class="storefront-backoffice-link" routerLink="/backoffice">Backoffice</a>
+                }
+                <span class="session-indicator" [attr.aria-label]="'Connecté en tant que ' + user.name" [title]="'Connecté en tant que ' + user.name">
+                    <i class="pi pi-check-circle" aria-hidden="true"></i>
+                    <span class="session-label">{{ user.name }}</span>
+                </span>
+            }
             <button class="icon-action cart-action" type="button" (click)="cartOpen = !cartOpen" [attr.aria-expanded]="cartOpen" aria-label="Ouvrir le panier">
                 <i class="pi pi-shopping-bag"></i>
                 @if (cartItems.length) {
-                    <span class="cart-count">{{ cartItems.length }}</span>
+                    <span class="cart-count">{{ cartItemCount }}</span>
                 }
             </button>
+            @if (auth.currentUser()) {
+                <button class="icon-action logout-action" type="button" (click)="logout()" [disabled]="loggingOut" aria-label="Se déconnecter" title="Se déconnecter">
+                    <i class="pi pi-sign-out" aria-hidden="true"></i>
+                </button>
+            } @else {
+                <a class="icon-action account-link" routerLink="/auth/login" aria-label="Se connecter" title="Se connecter">
+                    <i class="pi pi-user" aria-hidden="true"></i>
+                </a>
+            }
         </div>
     </header>
 
@@ -60,7 +75,7 @@
             <div class="hero-visual">
                 <div class="hero-orbit"></div>
                 <span class="hero-sticker"><i class="pi pi-sparkles"></i> Coups de cœur<br />du moment</span>
-                <img class="hero-product hero-product-main" src="/demo/images/product/gaming-set.jpg" alt="Ensemble de jeu sélectionné par BazaStore" />
+                <img class="hero-product hero-product-main" src="/demo/images/product/gaming-set.jpg" alt="Ensemble de jeu sélectionné par BazarStore" />
                 <img class="hero-product hero-product-small" src="/demo/images/product/green-earbuds.jpg" alt="Écouteurs sans fil verts" />
                 <div class="hero-note"><span class="note-icon"><i class="pi pi-heart-fill"></i></span><span><strong>Votre prochain favori</strong><small>est peut-être juste ici</small></span></div>
                 <span class="hero-spark spark-one">✳</span>
@@ -72,7 +87,7 @@
             <div><i class="pi pi-th-large"></i><span><strong>Un large choix</strong><small>Des idées pour tous les jours</small></span></div>
             <div><i class="pi pi-search"></i><span><strong>Explorez facilement</strong><small>Parcourez nos catégories</small></span></div>
             <div><i class="pi pi-heart"></i><span><strong>Vos coups de cœur</strong><small>Gardez vos favoris à portée</small></span></div>
-            <div><i class="pi pi-shopping-bag"></i><span><strong>BazaStore</strong><small>Une boutique à votre image</small></span></div>
+            <div><i class="pi pi-shopping-bag"></i><span><strong>BazarStore</strong><small>Une boutique à votre image</small></span></div>
         </section>
 
         <section id="categories" class="section-block category-section">
@@ -101,10 +116,10 @@
 
         <section id="products" class="section-block products-section">
             <div class="section-heading products-heading">
-                <div><span class="eyebrow">SÉLECTION BAZARSTORE</span><h2>Les trouvailles du moment</h2></div>
+                <div><span class="eyebrow">SÉLECTION</span><h2>Les trouvailles du moment</h2></div>
                 <a class="text-link" href="#categories" (click)="selectCategory('')">Tout le catalogue <i class="pi pi-arrow-right"></i></a>
             </div>
-            <div class="catalog-notice"><i class="pi pi-info-circle"></i> Catalogue et prix affichés à titre de démonstration.</div>
+            <div class="catalog-notice"><i class="pi pi-info-circle"></i> Catalogue et prix indicatifs affichés en ariary (Ar).</div>
             <div class="filter-row" aria-label="Filtrer les produits">
                 <button type="button" [class.active]="selectedCategory === ''" (click)="selectCategory('')">Tout voir</button>
                 <button type="button" [class.active]="selectedCategory === 'Clothing'" (click)="selectCategory('Clothing')">Mode</button>
@@ -117,7 +132,7 @@
                 @for (product of filteredProducts; track product.id) {
                     <article class="product-card">
                         <div class="product-image-wrap">
-                            <img [src]="'/demo/images/product/' + product.image" [alt]="product.name || 'Produit BazaStore'" loading="lazy" />
+                            <img [src]="'/demo/images/product/' + product.image" [alt]="product.name || 'Produit BazarStore'" loading="lazy" />
                             @if (product.inventoryStatus === 'OUTOFSTOCK') {
                                 <span class="product-badge badge-muted">Bientôt disponible</span>
                             } @else if (product.rating && product.rating >= 5) {
@@ -134,7 +149,7 @@
                             <span class="product-category">{{ categoryLabel(product.category) }}</span>
                             <h3>{{ product.name }}</h3>
                             <div class="product-meta">
-                                <span class="product-price">{{ product.price | currency: 'USD' : 'symbol' : '1.0-0' }}</span>
+                                <span class="product-price">{{ formatPrice(product.price) }}</span>
                                 @if (product.rating) {
                                     <span class="product-rating"><i class="pi pi-star-fill"></i> {{ product.rating }}.0</span>
                                 }
@@ -160,27 +175,56 @@
     </main>
 
     <footer class="site-footer">
-        <a class="brand footer-brand" href="#home"><span class="brand-mark" aria-hidden="true"></span><span>Bazar<span>Store</span></span></a>
-        <p>De belles trouvailles, simplement.</p>
-        <div class="footer-links"><a href="#categories">Catégories</a><a href="#products">Boutique</a><a routerLink="/auth/login">Mon compte</a></div>
-        <span class="copyright">© 2026 BazaStore. Tous droits réservés.</span>
+        <div class="footer-main">
+            <div class="footer-about">
+                <a class="brand footer-brand" href="#home"><span class="brand-mark" aria-hidden="true"></span><span>Bazar<span>Store</span></span></a>
+                <p>De belles trouvailles pour le quotidien, réunies dans une boutique simple et agréable.</p>
+            </div>
+            <nav class="footer-column" aria-label="Découvrir BazarStore">
+                <h2>Découvrir</h2>
+                <a href="#categories">Nos catégories</a>
+                <a href="#products">Tous les produits</a>
+                <a href="#services">Nos engagements</a>
+            </nav>
+            <nav class="footer-column" aria-label="Votre compte">
+                <h2>Votre compte</h2>
+                <a routerLink="/auth/login">Se connecter</a>
+                <a routerLink="/auth/register">Créer un compte</a>
+                <a href="#products" (click)="cartOpen = true">Voir le panier</a>
+            </nav>
+            <div class="footer-column footer-contact">
+                <h2>Contact & réseaux</h2>
+                <p>Nos coordonnées et liens sociaux seront bientôt disponibles.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>© {{ currentYear }} <span class="brand-wordmark">Bazar<span>Store</span></span>. Tous droits réservés.</span>
+            <a href="#home">Retour en haut <i class="pi pi-arrow-up"></i></a>
+        </div>
     </footer>
 
     @if (cartOpen) {
         <div class="cart-backdrop" (click)="cartOpen = false"></div>
         <aside class="cart-drawer" aria-label="Votre panier">
-            <div class="cart-header"><div><span class="eyebrow">BAZARSTORE</span><h2>Votre panier <span>({{ cartItems.length }})</span></h2></div><button type="button" class="icon-action" aria-label="Fermer le panier" (click)="cartOpen = false"><i class="pi pi-times"></i></button></div>
+            <div class="cart-header"><div><span class="eyebrow"><span class="brand-wordmark">Bazar<span>Store</span></span></span><h2>Votre panier <span>({{ cartItemCount }})</span></h2></div><button type="button" class="icon-action" aria-label="Fermer le panier" (click)="cartOpen = false"><i class="pi pi-times"></i></button></div>
             @if (cartItems.length) {
                 <div class="cart-list">
-                    @for (product of cartItems; track $index) {
+                    @for (item of cartItems; track item.product.id; let i = $index) {
                         <div class="cart-line">
-                            <img [src]="'/demo/images/product/' + product.image" [alt]="product.name ?? 'Produit'" />
-                            <div><strong>{{ product.name }}</strong><span>{{ product.price | currency: 'USD' : 'symbol' : '1.0-0' }}</span></div>
-                            <button type="button" aria-label="Retirer un article" (click)="removeFromCart($index)"><i class="pi pi-trash"></i></button>
+                            <img [src]="'/demo/images/product/' + item.product.image" [alt]="item.product.name ?? 'Produit'" />
+                            <div class="cart-item-info"><strong>{{ item.product.name }}</strong><span>{{ formatPrice(item.product.price) }} l’unité</span>
+                                <div class="quantity-control" [attr.aria-label]="'Quantité de ' + item.product.name">
+                                    <button type="button" [attr.aria-label]="'Diminuer la quantité de ' + item.product.name" (click)="changeQuantity(i, -1)"><i class="pi pi-minus"></i></button>
+                                    <span>{{ item.quantity }}</span>
+                                    <button type="button" [attr.aria-label]="'Augmenter la quantité de ' + item.product.name" (click)="changeQuantity(i, 1)"><i class="pi pi-plus"></i></button>
+                                </div>
+                            </div>
+                            <strong class="cart-line-total">{{ formatPrice((item.product.price ?? 0) * item.quantity) }}</strong>
+                            <button type="button" aria-label="Retirer tous ces articles" (click)="removeFromCart(i)"><i class="pi pi-trash"></i></button>
                         </div>
                     }
                 </div>
-                <div class="cart-total"><span>Sous-total indicatif</span><strong>{{ cartTotal | currency: 'USD' : 'symbol' : '1.0-0' }}</strong></div>
+                <div class="cart-total"><span>Sous-total indicatif</span><strong>{{ formatPrice(cartTotal) }}</strong></div>
                 <p class="cart-disclaimer">Panier de démonstration : la commande et le paiement ne sont pas encore activés.</p>
             } @else {
                 <div class="cart-empty"><i class="pi pi-shopping-bag"></i><strong>Votre panier attend ses premières trouvailles.</strong><button class="button button-dark" type="button" (click)="cartOpen = false">Continuer mes achats</button></div>

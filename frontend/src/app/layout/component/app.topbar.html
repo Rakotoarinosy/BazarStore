@@ -26,11 +26,15 @@
                         />
                     </g>
                 </svg>
-                <span>BazarStore</span>
+                <span class="brand-wordmark">Bazar<span>Store</span></span>
             </a>
         </div>
 
         <div class="layout-topbar-actions">
+            <a class="layout-topbar-action" routerLink="/" title="Voir la boutique" aria-label="Voir la boutique">
+                <i class="pi pi-shopping-bag"></i>
+                <span>Voir la boutique</span>
+            </a>
             <div class="layout-config-menu">
                 <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
                     <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>

@@ -1,0 +1,35 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env
+    # Le projet est monté dans le conteneur : hot reload, et ./app.db partagé avec le dev local.
+    volumes:
+      - .:/app
+    command: sh -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
+    # Décommenter avec le service db ci-dessous pour utiliser PostgreSQL :
+    # environment:
+    #   DATABASE_URL: postgresql+psycopg://bazarstore:CHANGE_ME@db:5432/bazarstore
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+
+  # PostgreSQL 16 — commenté par défaut : SQLite suffit en dev rapide.
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: bazarstore
+  #     POSTGRES_PASSWORD: CHANGE_ME
+  #     POSTGRES_DB: bazarstore
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U bazarstore"]
+  #     interval: 5s
+  #     retries: 5
+
+# volumes:
+#   pgdata:

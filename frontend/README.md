@@ -6,16 +6,16 @@ This frontend uses Angular 21 and reuses the Sakai template for the BazarStore s
 
 - `/` opens the public landing page.
 - `/backoffice` opens the existing template backoffice dashboard and its pages.
-- `/auth/login` opens the BazaStore sign-in page.
-- `/auth/register` opens the BazaStore account creation page.
+- `/auth/login` opens the BazarStore sign-in page.
+- `/auth/register` opens the BazarStore account creation page.
 
 The previous top-level backoffice URLs redirect to their `/backoffice` equivalents.
 
-Login and registration are currently presentation/forms only; the authentication backend, password recovery, and account persistence are not connected.
+Login and registration call the FastAPI `/api/v1/auth` endpoints through the local Angular proxy. Access tokens are kept in memory; refresh tokens use the backend's HttpOnly cookie. The development server proxies `/api/v1` to `http://127.0.0.1:8000`; production must route the same path to the API. Google sign-in requires the OAuth Web client ID in `backend/.env` (`GOOGLE_CLIENT_ID`) and `public/runtime-config.local.json` (`googleClientId`), plus the frontend origin authorized in Google Cloud. The tracked `public/runtime-config.json` stays blank as a template; the local override is ignored by Git. Password recovery is not implemented yet.
 
 ## Brand assets
 
-Brand images are stored in `assets/images` and copied to `/assets/images` during the Angular build. The BazaStore mark is used in the storefront and backoffice headers, and as the browser favicon.
+Brand images are stored in `assets/images` and copied to `/assets/images` during the Angular build. The BazarStore mark is used in the storefront and backoffice headers, and as the browser favicon.
 
 ## Component files
 

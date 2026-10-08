@@ -1,26 +1,60 @@
-import { CurrencyPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { EMPTY, catchError, finalize } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
 import { Product, ProductService } from '../service/product.service';
 
 @Component({
     selector: 'app-landing',
     standalone: true,
-    imports: [CurrencyPipe, RouterModule],
+    imports: [RouterModule],
     providers: [ProductService],
     templateUrl: './landing.html'
 })
 export class Landing {
     private readonly productService = inject(ProductService);
+    private readonly router = inject(Router);
+    readonly auth = inject(AuthService);
 
+    readonly currentYear = new Date().getFullYear();
     readonly products = this.productService.getProductsData();
     searchTerm = '';
     selectedCategory = '';
-    cartItems: Product[] = [];
+    cartItems: { product: Product; quantity: number }[] = [];
     favoriteIds = new Set<string>();
     cartOpen = false;
     newsletterEmail = '';
     subscriptionMessage = '';
+    loggingOut = false;
+
+    constructor() {
+        // Restaure la session depuis le cookie HttpOnly après un rechargement.
+        this.auth
+            .refresh()
+            .pipe(
+                catchError(() => {
+                    this.auth.clearSession();
+                    return EMPTY;
+                })
+            )
+            .subscribe();
+    }
+
+    logout(): void {
+        if (this.loggingOut) return;
+
+        this.loggingOut = true;
+        this.auth
+            .logout()
+            .pipe(
+                catchError(() => EMPTY),
+                finalize(() => {
+                    this.loggingOut = false;
+                    void this.router.navigateByUrl('/auth/login');
+                })
+            )
+            .subscribe();
+    }
 
     get filteredProducts() {
         const search = this.searchTerm.trim().toLocaleLowerCase();
@@ -34,8 +68,20 @@ export class Landing {
         }).slice(0, 8);
     }
 
+    get showBackofficeLink(): boolean {
+        return ['admin', 'commercial', 'manager'].includes(this.auth.currentUser()?.role ?? '');
+    }
+
     get cartTotal(): number {
-        return this.cartItems.reduce((total, product) => total + (product.price ?? 0), 0);
+        return this.cartItems.reduce((total, item) => total + (item.product.price ?? 0) * item.quantity, 0);
+    }
+
+    get cartItemCount(): number {
+        return this.cartItems.reduce((total, item) => total + item.quantity, 0);
+    }
+
+    formatPrice(price: number | undefined): string {
+        return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(price ?? 0)} Ar`;
     }
 
     updateSearch(event: Event): void {
@@ -81,8 +127,24 @@ export class Landing {
     }
 
     addToCart(product: Product): void {
-        this.cartItems = [...this.cartItems, product];
+        const existing = this.cartItems.find((item) => item.product.id === product.id);
+        if (existing) {
+            existing.quantity += 1;
+            this.cartItems = [...this.cartItems];
+        } else {
+            this.cartItems = [...this.cartItems, { product, quantity: 1 }];
+        }
         this.cartOpen = true;
+    }
+
+    changeQuantity(index: number, change: number): void {
+        const item = this.cartItems[index];
+        if (!item) return;
+
+        const quantity = item.quantity + change;
+        this.cartItems = quantity > 0
+            ? this.cartItems.map((entry, itemIndex) => itemIndex === index ? { ...entry, quantity } : entry)
+            : this.cartItems.filter((_, itemIndex) => itemIndex !== index);
     }
 
     removeFromCart(index: number): void {

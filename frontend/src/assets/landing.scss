@@ -106,6 +106,38 @@ app-landing {
     gap: 0.8rem;
 }
 
+.storefront-backoffice-link {
+    color: var(--brand-navy);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+        color: var(--brand-orange);
+    }
+}
+
+.session-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #27835b;
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
+
+    .pi {
+        font-size: 0.95rem;
+    }
+}
+
+.session-label {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .search-box {
     display: flex;
     width: clamp(190px, 20vw, 275px);
@@ -158,6 +190,11 @@ app-landing {
         color 160ms ease,
         border-color 160ms ease,
         background 160ms ease;
+
+    &:disabled {
+        cursor: wait;
+        opacity: 0.6;
+    }
 
     &:hover {
         border-color: var(--brand-navy);
@@ -935,19 +972,15 @@ app-landing {
 }
 
 .site-footer {
-    display: flex;
-    min-height: 90px;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 1.4rem max(5vw, calc((100vw - 1240px) / 2));
+    padding: 2.5rem max(5vw, calc((100vw - 1240px) / 2)) 1.2rem;
     border-top: 1px solid #eff0f2;
+}
 
-    > p {
-        flex: 1;
-        margin: 0;
-        color: var(--brand-muted);
-        font-size: 0.75rem;
-    }
+.footer-main {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(130px, 1fr));
+    gap: 2rem;
+    padding-bottom: 2rem;
 }
 
 .footer-brand {
@@ -959,14 +992,50 @@ app-landing {
     }
 }
 
-.footer-links {
-    display: flex;
-    gap: 1rem;
+.footer-about p,
+.footer-contact p {
+    max-width: 270px;
+    margin: 0.8rem 0 0;
+    color: var(--brand-muted);
+    font-size: 0.78rem;
+    line-height: 1.7;
+}
 
-    a,
-    .copyright {
+.footer-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.7rem;
+
+    h2 {
+        margin: 0 0 0.25rem;
+        color: var(--brand-navy);
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    a {
         color: #70798a;
         font-size: 0.7rem;
+        text-decoration: none;
+
+        &:hover {
+            color: var(--brand-blue);
+        }
+    }
+}
+
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eff0f2;
+    color: #9ba2ad;
+    font-size: 0.68rem;
+
+    a {
+        color: #70798a;
         text-decoration: none;
     }
 }
@@ -989,7 +1058,7 @@ app-landing {
     top: 0;
     right: 0;
     display: flex;
-    width: min(430px, 100vw);
+    width: min(560px, 100vw);
     height: 100dvh;
     flex-direction: column;
     padding: 1.4rem;
@@ -1015,6 +1084,13 @@ app-landing {
             font-weight: 500;
         }
     }
+}
+
+.cart-header .eyebrow > .brand-wordmark {
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: none;
 }
 
 .cart-list {
@@ -1060,6 +1136,40 @@ app-landing {
         color: #9ba2ad;
         background: transparent;
         cursor: pointer;
+    }
+}
+
+.cart-item-info {
+    align-items: start;
+}
+
+.cart-line-total {
+    color: var(--brand-navy);
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.quantity-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 0.15rem;
+
+    > span {
+        min-width: 1.25rem;
+        color: var(--brand-navy);
+        text-align: center;
+    }
+
+    button {
+        display: grid;
+        width: 1.65rem;
+        height: 1.65rem;
+        place-items: center;
+        border: 1px solid #e5e8ed;
+        border-radius: 50%;
+        color: var(--brand-navy);
+        background: #fff;
     }
 }
 
@@ -1110,10 +1220,6 @@ app-landing {
 
     .desktop-nav {
         gap: 1rem;
-    }
-
-    .account-link {
-        display: none;
     }
 
     .service-strip {
@@ -1195,6 +1301,15 @@ app-landing {
     .icon-action {
         width: 36px;
         height: 36px;
+    }
+
+    .session-label {
+        max-width: 76px;
+        font-size: 0.68rem;
+    }
+
+    .header-actions {
+        gap: 0.5rem;
     }
 
     .hero-section {
@@ -1403,27 +1518,20 @@ app-landing {
     }
 
     .site-footer {
-        align-items: flex-start;
-        flex-wrap: wrap;
-        gap: 0.7rem;
         padding: 1.3rem 1.2rem;
-
-        > p {
-            width: calc(100% - 120px);
-            flex: none;
-            align-self: center;
-            text-align: right;
-        }
     }
 
-    .footer-links {
-        width: 100%;
-        justify-content: space-between;
-        padding-top: 0.5rem;
+    .footer-main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.5rem 1rem;
     }
 
-    .copyright {
-        width: 100%;
+    .footer-about {
+        grid-column: 1 / -1;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
     }
 }
 

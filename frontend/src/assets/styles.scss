@@ -4,3 +4,14 @@
 @use '@/assets/demo/demo.scss';
 @use '@/assets/landing.scss';
 @use '@/assets/auth.scss';
+
+.brand-wordmark {
+    color: #172744;
+    font-weight: 800;
+    letter-spacing: -0.06em;
+    white-space: nowrap;
+
+    > span {
+        color: #315e91;
+    }
+}
