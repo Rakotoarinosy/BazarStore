@@ -7,7 +7,7 @@ limité au chemin /api/v1/auth. L'access token est renvoyé dans le JSON et gard
 import logging
 import secrets
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, Form, HTTPException, Response, status
 
 from src.domain.user import (
     AccessTokenService,
@@ -45,7 +45,10 @@ from src.infrastructure.security.deps import (
     get_token_service,
     get_user_repo,
 )
-from src.infrastructure.security.google_identity import verify_google_identity
+from src.infrastructure.security.google_identity import (
+    exchange_google_code,
+    verify_google_identity,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -177,6 +180,49 @@ def google_login_endpoint(
     identity = verify_google_identity(payload.credential, settings.google_client_id, google_nonce)
     session = login_with_google(identity, users, refresh_repo, hasher, tokens, policy)
     _clear_google_nonce_cookie(response, settings)
+
+    return _respond(session, response, settings)
+
+
+@router.post(
+    "/google/token",
+    response_model=TokenOut,
+    summary="Google OAuth - token exchange (used by Scalar)",
+)
+def google_oauth_token_endpoint(
+    response: Response,
+    code: str = Form(min_length=1, max_length=2048),
+    redirect_uri: str = Form(min_length=1, max_length=2048),
+    code_verifier: str | None = Form(default=None, max_length=256),
+    users: UserRepository = Depends(get_user_repo),
+    refresh_repo: RefreshTokenRepository = Depends(get_refresh_token_repo),
+    hasher: PasswordHasher = Depends(get_password_hasher),
+    tokens: AccessTokenService = Depends(get_token_service),
+    policy: AuthPolicy = Depends(get_auth_policy),
+    settings: Settings = Depends(get_settings),
+) -> TokenOut:
+    """Échange un code d'autorisation Google contre une session BazarStore.
+
+    Appelé par Scalar (Authentication → GoogleOAuth → Authorize) : Scalar ouvre la popup Google,
+    récupère le code sur `/docs`, puis l'envoie ici. Le secret client reste côté serveur et
+    l'access token renvoyé est notre JWT, utilisé ensuite en Bearer sur toutes les routes.
+    """
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google OAuth (server flow) is not configured",
+        )
+
+    id_token = exchange_google_code(
+        code,
+        settings.google_client_id,
+        settings.google_client_secret,
+        redirect_uri,
+        code_verifier,
+    )
+    # Pas de nonce : le code est échangé directement auprès de Google avec le secret client.
+    identity = verify_google_identity(id_token, settings.google_client_id, expected_nonce=None)
+    session = login_with_google(identity, users, refresh_repo, hasher, tokens, policy)
 
     return _respond(session, response, settings)
 

@@ -9,7 +9,11 @@ from collections.abc import Callable
 from functools import lru_cache
 
 from fastapi import Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+    OAuth2AuthorizationCodeBearer,
+)
 from sqlalchemy.orm import Session
 
 from src.domain.user import (
@@ -29,10 +33,19 @@ from src.infrastructure.persistence.refresh_token_repository import (
     SqlAlchemyRefreshTokenRepository,
 )
 from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
+from src.infrastructure.security.google_identity import GOOGLE_AUTHORIZE_URL
 from src.infrastructure.security.password import Argon2PasswordHasher
 from src.infrastructure.security.tokens import JwtAccessTokenService
 
 bearer_scheme = HTTPBearer(auto_error=False)
+# Documente la connexion Google dans Scalar : le token obtenu est notre JWT, envoyé en Bearer.
+google_oauth_scheme = OAuth2AuthorizationCodeBearer(
+    authorizationUrl=GOOGLE_AUTHORIZE_URL,
+    tokenUrl="/api/v1/auth/google/token",
+    scopes={"openid": "OpenID", "email": "Adresse e-mail", "profile": "Nom et photo"},
+    scheme_name="GoogleOAuth",
+    auto_error=False,
+)
 
 
 def get_user_repo(db: Session = Depends(get_db)) -> UserRepository:
@@ -67,6 +80,7 @@ def get_auth_policy() -> AuthPolicy:
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    _google_oauth: str | None = Depends(google_oauth_scheme),  # même header, OpenAPI uniquement
     users: UserRepository = Depends(get_user_repo),
     tokens: AccessTokenService = Depends(get_token_service),
 ) -> User:

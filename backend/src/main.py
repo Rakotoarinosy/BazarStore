@@ -3,7 +3,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 from starlette.responses import HTMLResponse
@@ -70,8 +70,28 @@ def create_app() -> FastAPI:
     if show_docs:
 
         @app.get("/docs", include_in_schema=False)
-        def scalar() -> HTMLResponse:
-            return get_scalar_api_reference(openapi_url="/openapi.json", title=app.title)
+        def scalar(request: Request) -> HTMLResponse:
+            # Préremplit la connexion Google : Scalar revient sur /docs avec le code, puis
+            # l'échange via POST /api/v1/auth/google/token (secret gardé côté serveur).
+            authentication = {
+                "securitySchemes": {
+                    "GoogleOAuth": {
+                        "flows": {
+                            "authorizationCode": {
+                                "x-scalar-client-id": settings.google_client_id or "",
+                                "x-scalar-redirect-uri": str(request.url_for("scalar")),
+                                "selectedScopes": ["openid", "email", "profile"],
+                            }
+                        }
+                    }
+                }
+            }
+            return get_scalar_api_reference(
+                openapi_url="/openapi.json",
+                title=app.title,
+                authentication=authentication,
+                persist_auth=True,
+            )
 
     return app
 

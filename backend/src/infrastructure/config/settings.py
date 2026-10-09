@@ -40,6 +40,8 @@ class Settings(BaseSettings):
 
     # OAuth Google : l'identifiant client est public, mais reste configurable par environnement.
     google_client_id: str | None = None
+    # Flux OAuth côté serveur (connexion depuis Scalar) : secret jamais exposé au client.
+    google_client_secret: str | None = None
 
     # MinIO/S3 : les images sont servies par l'API BazarStore sur la même origine que le frontend.
     minio_endpoint: str = "127.0.0.1:9010"
