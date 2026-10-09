@@ -83,6 +83,10 @@ export class Landing {
         return this.catalog.categories();
     }
 
+    get selectedCategoryInfo() {
+        return this.catalog.categories().find((category) => category.id === this.selectedCategory);
+    }
+
     get displayedCategories() {
         return this.visibleCategories.slice(0, this.categoryDisplayCount);
     }

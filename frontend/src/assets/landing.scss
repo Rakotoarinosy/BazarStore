@@ -679,6 +679,20 @@ app-landing {
     font-size: 0.7rem;
 }
 
+.category-description {
+    position: relative;
+    z-index: 1;
+    display: -webkit-box;
+    max-width: 54%;
+    overflow: hidden;
+    margin-top: 0.4rem;
+    color: #717b8b;
+    font-size: 0.69rem;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
 .category-link {
     position: relative;
     z-index: 1;
@@ -770,6 +784,25 @@ app-landing {
             background: var(--brand-navy);
         }
     }
+}
+
+.selected-category-description {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    max-width: 46rem;
+    margin: -0.5rem 0 1.2rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid #e5e8ec;
+    border-radius: 0.75rem;
+    color: var(--brand-blue);
+    background: #fff;
+
+    > i { margin-top: 0.15rem; }
+
+    strong { color: var(--brand-navy); font-size: 0.78rem; }
+
+    p { margin: 0.2rem 0 0; color: var(--brand-muted); font-size: 0.75rem; line-height: 1.5; }
 }
 
 .product-grid {

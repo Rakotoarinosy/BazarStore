@@ -100,6 +100,7 @@
                     <button class="category-card" [class.category-fashion]="index % 3 === 0" [class.category-tech]="index % 3 === 1" [class.category-accessories]="index % 3 === 2" type="button" (click)="selectCategory(category.id)">
                         <span class="category-icon"><i class="pi pi-tag"></i></span>
                         <span class="category-name">{{ category.name }}</span>
+                        @if (category.description) { <span class="category-description">{{ category.description }}</span> }
                         <span class="category-count">{{ categoryProductCount(category.id) }} article(s)</span>
                         <span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
                         @if (category.image_url) {
@@ -140,6 +141,14 @@
                     <button type="button" [class.active]="selectedCategory === category.id" (click)="selectCategory(category.id)">{{ category.name }}</button>
                 }
             </div>
+            @if (selectedCategoryInfo; as categoryInfo) {
+                @if (categoryInfo.description) {
+                    <div class="selected-category-description">
+                        <i class="pi pi-tag" aria-hidden="true"></i>
+                        <div><strong>{{ categoryInfo.name }}</strong><p>{{ categoryInfo.description }}</p></div>
+                    </div>
+                }
+            }
 
             <div class="product-grid">
                 @if (catalog.error()) {
