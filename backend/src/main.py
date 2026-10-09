@@ -17,6 +17,7 @@ from src.features.storefront.router import router as storefront_router
 from src.features.user.router import router as user_router
 from src.infrastructure.config import configure_logging, get_settings
 from src.shared.errors import register_exception_handlers
+from src.shared.security_headers import SecurityHeadersMiddleware
 
 API_PREFIX = "/api/v1"
 
@@ -51,6 +52,8 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json" if show_docs else None,
     )
 
+    # En-têtes de sécurité (HSTS seulement en production, servie en HTTPS).
+    app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_production)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,  # jamais "*" : les cookies (credentials) sont activés

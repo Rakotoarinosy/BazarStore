@@ -50,6 +50,37 @@ class Settings(BaseSettings):
     minio_bucket: str = "bazarstore-products"
     minio_secure: bool = False
 
+    # ─── Facturation (mentions légales du vendeur, affichées sur les factures PDF) ───
+    invoice_seller_name: str = "BazarStore"
+    invoice_seller_address: str = ""
+    invoice_seller_city: str = "Antananarivo, Madagascar"
+    invoice_seller_phone: str = ""
+    invoice_seller_email: str = ""
+    invoice_seller_nif: str = ""
+    invoice_seller_stat: str = ""
+    invoice_seller_rcs: str = ""
+    # Logo affiché en en-tête des factures (PNG/JPEG) ; vide = logo BazarStore fourni avec l'API.
+    invoice_logo_path: str = ""
+    # Taux de TVA en % ; les prix du catalogue sont TTC. 0 = vendeur non assujetti.
+    invoice_vat_rate: float = 20
+    invoice_payment_terms: str = "Paiement à réception de la facture."
+
+    # ─── Paiement par carte (API Stripe externe « E-commerce & Monitoring ») ───
+    card_payment_api_url: str | None = "https://ecommerce-api.rakotoarinosy.com"
+    # Ariary pour 1 unité de la devise Stripe de l'API (ex. 1 EUR ≈ 5000 Ar).
+    card_payment_ar_per_unit: float = 5000
+
+    # ─── Paiement MVola (Merchant Pay) ───
+    # Sandbox : https://devapi.mvola.mg — production : https://api.mvola.mg
+    mvola_base_url: str = "https://devapi.mvola.mg"
+    mvola_consumer_key: str | None = None
+    mvola_consumer_secret: str | None = None
+    # Numéro marchand crédité (en sandbox : 0343500004 ; le client paie avec 0343500003).
+    mvola_merchant_msisdn: str = "0343500004"
+    mvola_partner_name: str = "BazarStore"
+    # URL HTTPS publique appelée par MVola en fin de transaction ; vide = suivi par polling.
+    mvola_callback_url: str | None = None
+
     # ─── IA (analyse des demandes) ───
     # Sans clé, POST /requests/{id}/analyze répond 503 ; le reste de l'API fonctionne normalement.
     gemini_api_key: str | None = None

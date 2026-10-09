@@ -1,8 +1,12 @@
 """Schémas HTTP de création et consultation des commandes."""
 
+import re
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# Numéros MVola (Telma) : 034 / 038 suivis de 7 chiffres.
+_MVOLA_MSISDN = re.compile(r"^03[48]\d{7}$")
 
 
 class OrderItemCreateIn(BaseModel):
@@ -45,4 +49,39 @@ class OrderOut(BaseModel):
     status: str
     total_amount: int
     created_at: datetime
+    payment_provider: str | None = None
+    payment_status: str | None = None
+    payment_phone: str | None = None
+    payment_reference: str | None = None
+    paid_at: datetime | None = None
+    invoice_number: str | None = None
     items: list[OrderItemOut]
+
+
+class MvolaPaymentIn(BaseModel):
+    phone: str = Field(min_length=9, max_length=20, description="Numéro MVola, ex. 0343500003")
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_mvola_phone(cls, value: str) -> str:
+        digits = re.sub(r"[\s.\-]", "", value)
+        if digits.startswith("+261"):
+            digits = "0" + digits[4:]
+        elif digits.startswith("261"):
+            digits = "0" + digits[3:]
+        if not _MVOLA_MSISDN.match(digits):
+            raise ValueError(
+                "Numéro MVola invalide (format attendu : 034 ou 038 suivi de 7 chiffres)"
+            )
+        return digits
+
+
+class MvolaCallbackIn(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    serverCorrelationId: str = Field(min_length=1, max_length=100)  # noqa: N815 (nom imposé par MVola)
+
+
+class CardCheckoutOut(BaseModel):
+    checkout_url: str
+    order: OrderOut

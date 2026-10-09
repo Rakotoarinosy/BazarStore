@@ -254,13 +254,83 @@
     }
 }
 
+.order-payment-label {
+    color: #172744;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.order-payment-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.order-check-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid #d9dfe7;
+    border-radius: 7px;
+    color: #315e91;
+    background: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.order-pay-button:disabled,
+.order-check-button:disabled {
+    cursor: wait;
+    opacity: 0.75;
+}
+
 .order-payment-message {
     max-width: 100%;
     margin: 0;
-    color: #8a5a17;
+    color: #315e91;
     font-size: 0.78rem;
     line-height: 1.5;
     text-align: right;
+}
+
+.order-invoice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #e4e8ee;
+    border-radius: 10px;
+    background: #f7f9fc;
+}
+
+.order-invoice-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #172744;
+    font-size: 0.82rem;
+    font-weight: 600;
+
+    i {
+        color: #a33636;
+    }
+}
+
+.order-payment-error {
+    color: #a33636;
+}
+
+.order-payment-success {
+    margin-top: 1rem;
+    color: #1f7a4d;
+    font-weight: 600;
 }
 
 .order-dialog-backdrop {

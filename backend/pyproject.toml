@@ -21,6 +21,7 @@ dependencies = [
     "pydantic-settings>=2.6",
     "pyjwt>=2.15.1",
     "python-multipart>=0.0.20",
+    "reportlab>=4.2",
     "scalar-fastapi>=1.0",
     "sqlalchemy>=2.0",
     "starlette>=1.7.0",

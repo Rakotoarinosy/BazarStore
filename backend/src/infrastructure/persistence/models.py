@@ -137,6 +137,19 @@ class OrderModel(Base):
     status: Mapped[str] = mapped_column(String(24), default="pending", server_default="pending", nullable=False, index=True)
     total_amount: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    # Paiement Mobile Money : une tentative active par commande (une relance remplace la précédente).
+    payment_provider: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    payment_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    payment_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    payment_correlation_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    payment_reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    payment_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Facture : numéro séquentiel attribué une seule fois, à la première émission.
+    invoice_number: Mapped[str | None] = mapped_column(
+        String(24), unique=True, index=True, nullable=True
+    )
+    invoice_issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     user: Mapped[UserModel | None] = relationship(back_populates="orders")
     items: Mapped[list["OrderItemModel"]] = relationship(
         back_populates="order", cascade="all, delete-orphan", order_by="OrderItemModel.id"
