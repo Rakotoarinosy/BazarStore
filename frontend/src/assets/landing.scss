@@ -621,6 +621,21 @@ app-landing {
         mix-blend-mode: multiply;
         transition: transform 220ms ease;
     }
+
+    .category-image-fallback {
+        position: absolute;
+        right: 7%;
+        bottom: 16%;
+        display: grid;
+        width: 5rem;
+        height: 5rem;
+        place-items: center;
+        border: 1px solid rgb(255 255 255 / 75%);
+        border-radius: 50%;
+        color: var(--brand-blue);
+        background: rgb(255 255 255 / 62%);
+        font-size: 1.6rem;
+    }
 }
 
 .category-fashion {
@@ -655,6 +670,15 @@ app-landing {
     letter-spacing: -0.04em;
 }
 
+.category-count {
+    position: relative;
+    z-index: 1;
+    max-width: 55%;
+    margin-top: 0.35rem;
+    color: var(--brand-muted);
+    font-size: 0.7rem;
+}
+
 .category-link {
     position: relative;
     z-index: 1;
@@ -665,6 +689,39 @@ app-landing {
     color: #6f7787;
     font-size: 0.72rem;
     font-weight: 700;
+}
+
+.category-expand-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.3rem;
+}
+
+.category-expand-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid #dce3ec;
+    border-radius: 999px;
+    color: var(--brand-navy);
+    background: white;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: border-color 160ms ease, transform 160ms ease;
+
+    &:hover { border-color: var(--brand-blue); transform: translateY(-1px); }
+}
+
+.category-loading {
+    grid-column: 1 / -1;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    color: var(--brand-muted);
+    background: #f7f8fa;
+    text-align: center;
 }
 
 .products-section {
@@ -688,11 +745,13 @@ app-landing {
 
 .filter-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
     gap: 0.5rem;
     margin: 1.3rem 0 1.5rem;
 
     button {
+        flex: 0 0 auto;
         min-height: 34px;
         padding: 0.45rem 0.85rem;
         border: 1px solid #e5e8ec;

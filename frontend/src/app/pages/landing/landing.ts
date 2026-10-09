@@ -28,6 +28,8 @@ export class Landing {
     newsletterEmail = '';
     subscriptionMessage = '';
     loggingOut = false;
+    categoryDisplayCount = 6;
+    private readonly categoryPageSize = 6;
 
     constructor() {
         this.catalog.load(true).subscribe();
@@ -78,7 +80,35 @@ export class Landing {
     }
 
     get visibleCategories() {
-        return this.catalog.categories().filter((category) => this.catalog.products().some((product) => product.category_id === category.id));
+        return this.catalog.categories();
+    }
+
+    get displayedCategories() {
+        return this.visibleCategories.slice(0, this.categoryDisplayCount);
+    }
+
+    get hiddenCategoryCount(): number {
+        return Math.max(0, this.visibleCategories.length - this.categoryDisplayCount);
+    }
+
+    get hasExpandedCategoryList(): boolean {
+        return this.categoryDisplayCount > this.categoryPageSize;
+    }
+
+    get categoryExpandLabel(): string {
+        if (!this.hiddenCategoryCount) return 'Réduire la liste';
+        const amount = Math.min(this.hiddenCategoryCount, this.categoryPageSize);
+        return `Afficher ${amount} catégorie${amount > 1 ? 's' : ''} de plus`;
+    }
+
+    categoryProductCount(categoryId: string): number {
+        return this.catalog.products().filter((product) => product.category_id === categoryId).length;
+    }
+
+    toggleAllCategories(): void {
+        this.categoryDisplayCount = this.hiddenCategoryCount > 0
+            ? Math.min(this.categoryDisplayCount + this.categoryPageSize, this.visibleCategories.length)
+            : this.categoryPageSize;
     }
 
     get showBackofficeLink(): boolean {

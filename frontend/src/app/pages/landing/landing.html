@@ -96,16 +96,36 @@
                 <p>Des idées pour chaque envie, réunies dans une seule boutique.</p>
             </div>
             <div class="category-grid">
-                @for (category of visibleCategories; track category.id; let index = $index) {
+                @for (category of displayedCategories; track category.id; let index = $index) {
                     <button class="category-card" [class.category-fashion]="index % 3 === 0" [class.category-tech]="index % 3 === 1" [class.category-accessories]="index % 3 === 2" type="button" (click)="selectCategory(category.id)">
                         <span class="category-icon"><i class="pi pi-tag"></i></span>
-                        <span class="category-name">{{ category.name }}</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
-                        @if (category.image_url) { <img [src]="category.image_url" [alt]="category.name" loading="lazy" /> }
+                        <span class="category-name">{{ category.name }}</span>
+                        <span class="category-count">{{ categoryProductCount(category.id) }} article(s)</span>
+                        <span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
+                        @if (category.image_url) {
+                            <img [src]="category.image_url" [alt]="category.name" loading="lazy" />
+                        } @else {
+                            <span class="category-image-fallback" aria-hidden="true"><i class="pi pi-tag"></i></span>
+                        }
                     </button>
                 } @empty {
-                    @if (catalog.loading()) { <p>Chargement des catégories…</p> }
+                    @if (catalog.loading()) {
+                        <div class="category-loading"><i class="pi pi-spin pi-spinner"></i> Chargement des catégories…</div>
+                    } @else if (catalog.error()) {
+                        <div class="category-loading">Les catégories sont momentanément indisponibles.</div>
+                    } @else {
+                        <div class="category-loading">Aucune catégorie active pour le moment.</div>
+                    }
                 }
             </div>
+            @if (visibleCategories.length > 6) {
+                <div class="category-expand-wrap">
+                    <button class="category-expand-button" type="button" (click)="toggleAllCategories()" [attr.aria-expanded]="hasExpandedCategoryList">
+                        {{ categoryExpandLabel }}
+                        <i [class]="hiddenCategoryCount ? 'pi pi-arrow-down' : 'pi pi-arrow-up'"></i>
+                    </button>
+                </div>
+            }
         </section>
 
         <section id="products" class="section-block products-section">
