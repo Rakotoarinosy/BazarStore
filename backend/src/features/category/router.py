@@ -28,6 +28,11 @@ class CategoryAlreadyExistsError(DomainError):
         super().__init__("A category with this slug already exists")
 
 
+class CategoryInUseError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("A category assigned to products cannot be deleted")
+
+
 def _slugify(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^a-z0-9]+", "-", normalized.lower()).strip("-")
@@ -100,5 +105,9 @@ def delete_category(category_id: str, db: Session = Depends(get_db)) -> Response
     if category is None:
         raise CategoryNotFoundError(category_id)
     db.delete(category)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise CategoryInUseError() from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)

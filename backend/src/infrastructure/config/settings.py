@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     # OAuth Google : l'identifiant client est public, mais reste configurable par environnement.
     google_client_id: str | None = None
 
+    # MinIO/S3 : les images sont servies par l'API BazarStore sur la même origine que le frontend.
+    minio_endpoint: str = "127.0.0.1:9010"
+    minio_access_key: str | None = None
+    minio_secret_key: str | None = None
+    minio_bucket: str = "bazarstore-products"
+    minio_secure: bool = False
+
     # ─── IA (analyse des demandes) ───
     # Sans clé, POST /requests/{id}/analyze répond 503 ; le reste de l'API fonctionne normalement.
     gemini_api_key: str | None = None

@@ -2,25 +2,23 @@ import { Component, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { EMPTY, catchError, finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
-import { Product, ProductService } from '../service/product.service';
+import { CatalogProduct, ProductCatalogStore } from '../../core/products/product-catalog.store';
 
 @Component({
     selector: 'app-landing',
     standalone: true,
     imports: [RouterModule],
-    providers: [ProductService],
     templateUrl: './landing.html'
 })
 export class Landing {
-    private readonly productService = inject(ProductService);
     private readonly router = inject(Router);
+    readonly catalog = inject(ProductCatalogStore);
     readonly auth = inject(AuthService);
 
     readonly currentYear = new Date().getFullYear();
-    readonly products = this.productService.getProductsData();
     searchTerm = '';
     selectedCategory = '';
-    cartItems: { product: Product; quantity: number }[] = [];
+    cartItems: { product: CatalogProduct; quantity: number }[] = [];
     favoriteIds = new Set<string>();
     cartOpen = false;
     newsletterEmail = '';
@@ -28,6 +26,7 @@ export class Landing {
     loggingOut = false;
 
     constructor() {
+        this.catalog.load(true).subscribe();
         // Restaure la session depuis le cookie HttpOnly après un rechargement.
         this.auth
             .refresh()
@@ -59,13 +58,17 @@ export class Landing {
     get filteredProducts() {
         const search = this.searchTerm.trim().toLocaleLowerCase();
 
-        return this.products.filter((product) => {
-            const matchesCategory = !this.selectedCategory || product.category === this.selectedCategory;
+        return this.catalog.products().filter((product) => {
+            const matchesCategory = !this.selectedCategory || product.category_id === this.selectedCategory;
             const matchesSearch =
-                !search || `${product.name ?? ''} ${product.category ?? ''} ${product.description ?? ''}`.toLocaleLowerCase().includes(search);
+                !search || `${product.name} ${product.category_name} ${product.description}`.toLocaleLowerCase().includes(search);
 
             return matchesCategory && matchesSearch;
         }).slice(0, 8);
+    }
+
+    get visibleCategories() {
+        return this.catalog.categories().filter((category) => this.catalog.products().some((product) => product.category_id === category.id));
     }
 
     get showBackofficeLink(): boolean {
@@ -95,19 +98,8 @@ export class Landing {
         document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
     }
 
-    categoryLabel(category: string | undefined): string {
-        switch (category) {
-            case 'Clothing':
-                return 'Mode';
-            case 'Electronics':
-                return 'High-tech';
-            case 'Fitness':
-                return 'Sport & bien-être';
-            case 'Accessories':
-                return 'Accessoires';
-            default:
-                return 'À découvrir';
-        }
+    categoryProduct(categoryId: string): CatalogProduct | undefined {
+        return this.catalog.products().find((product) => product.category_id === categoryId && product.image_url);
     }
 
     toggleFavorite(productId: string | undefined): void {
@@ -126,7 +118,7 @@ export class Landing {
         return productId ? this.favoriteIds.has(productId) : false;
     }
 
-    addToCart(product: Product): void {
+    addToCart(product: CatalogProduct): void {
         const existing = this.cartItems.find((item) => item.product.id === product.id);
         if (existing) {
             existing.quantity += 1;

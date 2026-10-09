@@ -16,13 +16,16 @@ anyio==4.15.1
     #   starlette
     #   watchfiles
 argon2-cffi==25.1.0
-    # via backend
+    # via
+    #   backend
+    #   minio
 argon2-cffi-bindings==26.1.0
     # via argon2-cffi
 certifi==2026.7.22
     # via
     #   httpcore
     #   httpx
+    #   minio
     #   requests
 cffi==2.1.1
     # via
@@ -80,6 +83,8 @@ mako==1.4.3
     # via alembic
 markupsafe==3.0.3
     # via mako
+minio==7.2.20
+    # via backend
 mistralai==3.0.0
     # via backend
 opentelemetry-api==1.45.0
@@ -98,6 +103,8 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==3.0 ; implementation_name != 'PyPy'
     # via cffi
+pycryptodome==3.24.0
+    # via minio
 pydantic==2.13.5
     # via
     #   backend
@@ -118,6 +125,8 @@ python-dotenv==1.2.3
     # via
     #   pydantic-settings
     #   uvicorn
+python-multipart==0.0.32
+    # via backend
 pyyaml==6.0.3
     # via uvicorn
 requests==2.34.2
@@ -151,6 +160,7 @@ typing-extensions==4.16.0
     #   fastapi
     #   google-genai
     #   httpx2
+    #   minio
     #   opentelemetry-api
     #   opentelemetry-semantic-conventions
     #   psycopg
@@ -169,7 +179,9 @@ typing-inspection==0.4.4
 tzdata==2026.4 ; sys_platform == 'win32'
     # via psycopg
 urllib3==2.8.0
-    # via requests
+    # via
+    #   minio
+    #   requests
 uvicorn==0.54.0
     # via backend
 uvloop==0.22.1 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'

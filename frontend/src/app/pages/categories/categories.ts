@@ -142,7 +142,7 @@ export class Categories implements OnInit {
         let detail = 'Une erreur est survenue. Réessaie.';
         if (error instanceof HttpErrorResponse) {
             if (error.status === 401 || error.status === 403) detail = 'La gestion des catégories est réservée aux administrateurs.';
-            else if (error.status === 409) detail = 'Ce slug est déjà utilisé par une autre catégorie.';
+            else if (error.status === 409) detail = 'Ce slug est déjà utilisé ou la catégorie est encore associée à des produits.';
             else if (error.status === 422) detail = 'Vérifie le nom et les informations de la catégorie.';
             else if (error.status === 0) detail = 'Le serveur BazarStore est injoignable.';
         }

@@ -46,6 +46,15 @@ Toutes les variables sont dans [.env.example](.env.example) :
 | `CORS_ORIGINS` | `http://localhost:4200` | Origines autorisées, séparées par des virgules. Angular utilise un proxy local pour `/api/v1`. |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `SECRET_KEY` | `change-me-in-production` | À remplacer en production |
+| `MINIO_ENDPOINT` | `127.0.0.1:9010` | Endpoint S3 du conteneur MinIO existant |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | vide | Identifiants MinIO, à garder uniquement dans `backend/.env` |
+| `MINIO_BUCKET` | `bazarstore-products` | Bucket privé créé automatiquement au premier upload |
+| `MINIO_SECURE` | `false` | Utiliser HTTPS pour un endpoint MinIO TLS |
+
+Les images JPEG, PNG, GIF et WebP de 5 Mo maximum sont téléversées par l'API vers MinIO.
+PostgreSQL conserve la clé de l'objet. Le frontend affiche l'image via
+`GET /api/v1/products/images/{image_key}`, que l'API relaie depuis MinIO sur la même origine.
+Renseigner les identifiants du conteneur dans `backend/.env` sans les copier dans le frontend ni dans Git.
 
 ## Authentification
 

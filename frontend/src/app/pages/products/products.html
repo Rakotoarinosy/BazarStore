@@ -1,0 +1,151 @@
+<p-toast />
+<p-confirmdialog />
+
+<div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3 product-stats">
+    <div class="card mb-0 product-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">Produits au catalogue</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ products().length }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-primary-100 dark:bg-primary-400/10 product-stat-icon"><i class="pi pi-box text-primary text-xl"></i></span>
+    </div>
+    <div class="card mb-0 product-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">Produits actifs</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ activeCount }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-green-100 dark:bg-green-400/10 product-stat-icon"><i class="pi pi-check-circle text-green-500 text-xl"></i></span>
+    </div>
+    <div class="card mb-0 product-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">Ruptures de stock</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ outOfStockCount }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-orange-100 dark:bg-orange-400/10 product-stat-icon"><i class="pi pi-exclamation-triangle text-orange-500 text-xl"></i></span>
+    </div>
+</div>
+
+<div class="card">
+    @if (!activeCategories().length) {
+        <div class="mb-5 rounded-border bg-orange-50 p-4 text-orange-800">
+            <i class="pi pi-info-circle mr-2"></i>Crée et active au moins une catégorie avant d’ajouter des produits.
+        </div>
+    }
+    <p-toolbar styleClass="mb-5">
+        <ng-template #start>
+            <p-button label="Nouveau produit" icon="pi pi-plus" (onClick)="openNew()" [disabled]="!activeCategories().length" />
+        </ng-template>
+        <ng-template #end>
+            <span class="p-input-icon-left">
+                <i class="pi pi-search"></i>
+                <input pInputText type="search" placeholder="Rechercher un produit..." aria-label="Rechercher un produit" (input)="onSearch($event)" />
+            </span>
+        </ng-template>
+    </p-toolbar>
+
+    <p-table
+        #productsTable
+        [value]="products()"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [globalFilterFields]="['code', 'name', 'category_name', 'description']"
+        [rowHover]="true"
+        dataKey="id"
+        responsiveLayout="scroll"
+        currentPageReportTemplate="{first}–{last} sur {totalRecords} produits"
+        [showCurrentPageReport]="true"
+    >
+        <ng-template #caption>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-semibold m-0">Gestion des produits</h2>
+                    <p class="text-muted-color mt-2 mb-0">Chaque produit est rattaché à une seule catégorie.</p>
+                </div>
+                <span class="text-muted-color">{{ products().length }} produit(s)</span>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="code">Code <p-sortIcon field="code" /></th>
+                <th pSortableColumn="name">Produit <p-sortIcon field="name" /></th>
+                <th>Catégorie</th>
+                <th pSortableColumn="price">Prix (Ar) <p-sortIcon field="price" /></th>
+                <th pSortableColumn="quantity">Stock <p-sortIcon field="quantity" /></th>
+                <th>Visibilité</th>
+                <th style="width: 9rem">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-product>
+            <tr>
+                <td><code>{{ product.code }}</code></td>
+                <td>
+                    <div class="flex items-center gap-3">
+                        @if (product.image_url) { <img class="product-thumbnail" [src]="product.image_url" [alt]="product.name" /> }
+                        <div><div class="font-medium">{{ product.name }}</div><small class="text-muted-color product-row-description">{{ product.description }}</small></div>
+                    </div>
+                </td>
+                <td>{{ product.category_name }}</td>
+                <td class="whitespace-nowrap">{{ formatPrice(product.price) }}</td>
+                <td><p-tag [value]="stockLabel(product.inventory_status) + ' · ' + product.quantity" [severity]="stockSeverity(product.inventory_status)" /></td>
+                <td><p-tag [value]="product.is_active ? 'Actif' : 'Masqué'" [severity]="product.is_active ? 'success' : 'secondary'" /></td>
+                <td>
+                    <div class="flex items-center gap-2">
+                        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" aria-label="Modifier le produit" (onClick)="editProduct(product)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" aria-label="Supprimer le produit" (onClick)="deleteProduct(product)" />
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr><td colspan="7" class="text-center py-8 text-muted-color">Aucun produit à afficher.</td></tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(94vw, 42rem)' }" [header]="editingProduct ? 'Modifier un produit' : 'Créer un produit'" (onHide)="submitted = false">
+    <form class="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2" (ngSubmit)="saveProduct()">
+        <div>
+            <label for="product-code" class="block font-semibold mb-2">Code / SKU</label>
+            <input id="product-code" pInputText class="w-full" name="code" [(ngModel)]="form.code" required minlength="2" maxlength="64" autocomplete="off" />
+            @if (submitted && form.code.trim().length < 2) { <small class="text-red-500">Le code est obligatoire.</small> }
+        </div>
+        <div>
+            <label for="product-name" class="block font-semibold mb-2">Nom du produit</label>
+            <input id="product-name" pInputText class="w-full" name="name" [(ngModel)]="form.name" required minlength="2" maxlength="180" autocomplete="off" />
+            @if (submitted && form.name.trim().length < 2) { <small class="text-red-500">Le nom est obligatoire.</small> }
+        </div>
+        <div>
+            <label for="product-category" class="block font-semibold mb-2">Catégorie</label>
+            <select id="product-category" class="w-full p-3 border border-surface rounded-border bg-surface-0 dark:bg-surface-900" name="category_id" [(ngModel)]="form.category_id" required>
+                <option value="" disabled>Choisir une catégorie</option>
+                @for (category of categories(); track category.id) {
+                    <option [value]="category.id" [disabled]="!category.is_active && category.id !== editingProduct?.category_id">{{ category.name }}{{ category.is_active ? '' : ' (désactivée)' }}</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="product-price" class="block font-semibold mb-2">Prix de vente (Ar)</label>
+            <input id="product-price" pInputText class="w-full" type="number" name="price" [(ngModel)]="form.price" required min="0" step="1" />
+        </div>
+        <div>
+            <label for="product-quantity" class="block font-semibold mb-2">Quantité en stock</label>
+            <input id="product-quantity" pInputText class="w-full" type="number" name="quantity" [(ngModel)]="form.quantity" required min="0" step="1" />
+        </div>
+        <div>
+            <label for="product-image" class="block font-semibold mb-2">Image du produit</label>
+            <input id="product-image" class="w-full" type="file" accept="image/jpeg,image/png,image/gif,image/webp" (change)="selectImage($event)" />
+            <small class="text-muted-color">JPEG, PNG, GIF ou WebP — 5 Mo maximum. L’image est stockée dans MinIO.</small>
+            @if (form.image_url) {
+                <div class="mt-3 flex items-center gap-3">
+                    <img class="product-preview" [src]="form.image_url" alt="Aperçu du produit" />
+                    <p-button label="Retirer l’image" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="removeImage()" />
+                </div>
+            }
+        </div>
+        <div class="md:col-span-2">
+            <label for="product-description" class="block font-semibold mb-2">Description</label>
+            <textarea id="product-description" class="w-full p-3 border border-surface rounded-border bg-surface-0 dark:bg-surface-900" name="description" [(ngModel)]="form.description" rows="4" maxlength="5000"></textarea>
+        </div>
+        <div class="md:col-span-2 flex items-center gap-3">
+            <input id="product-active" type="checkbox" name="is_active" [(ngModel)]="form.is_active" />
+            <label for="product-active">Visible dans la boutique</label>
+        </div>
+    </form>
+    <ng-template #footer>
+        <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="dialogVisible = false" />
+        <p-button [label]="saving() ? 'Enregistrement...' : 'Enregistrer'" icon="pi pi-check" [disabled]="saving()" (onClick)="saveProduct()" />
+    </ng-template>
+</p-dialog>

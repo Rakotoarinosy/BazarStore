@@ -21,7 +21,7 @@ from sqlalchemy import (
     Text,
     true,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.persistence.database import Base
 
@@ -86,6 +86,27 @@ class ProductCategoryModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    products: Mapped[list["ProductModel"]] = relationship(back_populates="category", passive_deletes=True)
+
+
+class ProductModel(Base):
+    __tablename__ = "products"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    code: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(180), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text, default="", server_default="", nullable=False)
+    price: Mapped[int] = mapped_column(Integer, nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    image_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(), nullable=False)
+    category_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("product_categories.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    category: Mapped[ProductCategoryModel] = relationship(back_populates="products")
 
 
 # ─── agent ──────────────────────────────────────────────────────────

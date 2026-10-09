@@ -75,8 +75,8 @@
             <div class="hero-visual">
                 <div class="hero-orbit"></div>
                 <span class="hero-sticker"><i class="pi pi-sparkles"></i> Coups de cœur<br />du moment</span>
-                <img class="hero-product hero-product-main" src="/demo/images/product/gaming-set.jpg" alt="Ensemble de jeu sélectionné par BazarStore" />
-                <img class="hero-product hero-product-small" src="/demo/images/product/green-earbuds.jpg" alt="Écouteurs sans fil verts" />
+                <img class="hero-product hero-product-main" [src]="catalog.products()[0]?.image_url || '/demo/images/product/gaming-set.jpg'" [alt]="catalog.products()[0]?.name || 'Sélection BazarStore'" />
+                <img class="hero-product hero-product-small" [src]="catalog.products()[1]?.image_url || '/demo/images/product/green-earbuds.jpg'" [alt]="catalog.products()[1]?.name || 'Sélection BazarStore'" />
                 <div class="hero-note"><span class="note-icon"><i class="pi pi-heart-fill"></i></span><span><strong>Votre prochain favori</strong><small>est peut-être juste ici</small></span></div>
                 <span class="hero-spark spark-one">✳</span>
                 <span class="hero-spark spark-two">✳</span>
@@ -96,21 +96,15 @@
                 <p>Des idées pour chaque envie, réunies dans une seule boutique.</p>
             </div>
             <div class="category-grid">
-                <button class="category-card category-fashion" type="button" (click)="selectCategory('Clothing')">
-                    <span class="category-icon"><i class="pi pi-sparkles"></i></span>
-                    <span class="category-name">Mode & style</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
-                    <img src="/demo/images/product/blue-t-shirt.jpg" alt="" />
-                </button>
-                <button class="category-card category-tech" type="button" (click)="selectCategory('Electronics')">
-                    <span class="category-icon"><i class="pi pi-bolt"></i></span>
-                    <span class="category-name">High-tech</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
-                    <img src="/demo/images/product/headphones.jpg" alt="" />
-                </button>
-                <button class="category-card category-accessories" type="button" (click)="selectCategory('Accessories')">
-                    <span class="category-icon"><i class="pi pi-star"></i></span>
-                    <span class="category-name">Accessoires</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
-                    <img src="/demo/images/product/brown-purse.jpg" alt="" />
-                </button>
+                @for (category of visibleCategories; track category.id; let index = $index) {
+                    <button class="category-card" [class.category-fashion]="index % 3 === 0" [class.category-tech]="index % 3 === 1" [class.category-accessories]="index % 3 === 2" type="button" (click)="selectCategory(category.id)">
+                        <span class="category-icon"><i class="pi pi-tag"></i></span>
+                        <span class="category-name">{{ category.name }}</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
+                        @if (categoryProduct(category.id); as featured) { <img [src]="featured.image_url" [alt]="featured.name" loading="lazy" /> }
+                    </button>
+                } @empty {
+                    @if (catalog.loading()) { <p>Chargement des catégories…</p> }
+                }
             </div>
         </section>
 
@@ -119,45 +113,47 @@
                 <div><span class="eyebrow">SÉLECTION</span><h2>Les trouvailles du moment</h2></div>
                 <a class="text-link" href="#categories" (click)="selectCategory('')">Tout le catalogue <i class="pi pi-arrow-right"></i></a>
             </div>
-            <div class="catalog-notice"><i class="pi pi-info-circle"></i> Catalogue et prix indicatifs affichés en ariary (Ar).</div>
+            <div class="catalog-notice"><i class="pi pi-info-circle"></i> Catalogue et prix affichés en ariary (Ar).</div>
             <div class="filter-row" aria-label="Filtrer les produits">
                 <button type="button" [class.active]="selectedCategory === ''" (click)="selectCategory('')">Tout voir</button>
-                <button type="button" [class.active]="selectedCategory === 'Clothing'" (click)="selectCategory('Clothing')">Mode</button>
-                <button type="button" [class.active]="selectedCategory === 'Electronics'" (click)="selectCategory('Electronics')">High-tech</button>
-                <button type="button" [class.active]="selectedCategory === 'Accessories'" (click)="selectCategory('Accessories')">Accessoires</button>
-                <button type="button" [class.active]="selectedCategory === 'Fitness'" (click)="selectCategory('Fitness')">Sport & bien-être</button>
+                @for (category of visibleCategories; track category.id) {
+                    <button type="button" [class.active]="selectedCategory === category.id" (click)="selectCategory(category.id)">{{ category.name }}</button>
+                }
             </div>
 
             <div class="product-grid">
+                @if (catalog.error()) {
+                    <div class="empty-state"><i class="pi pi-exclamation-circle"></i><strong>Catalogue momentanément indisponible</strong><span>Vérifiez que le serveur est démarré, puis actualisez la page.</span></div>
+                } @else if (catalog.loading() && !catalog.products().length) {
+                    <div class="empty-state"><i class="pi pi-spin pi-spinner"></i><strong>Chargement du catalogue…</strong></div>
+                } @else {
                 @for (product of filteredProducts; track product.id) {
                     <article class="product-card">
                         <div class="product-image-wrap">
-                            <img [src]="'/demo/images/product/' + product.image" [alt]="product.name || 'Produit BazarStore'" loading="lazy" />
-                            @if (product.inventoryStatus === 'OUTOFSTOCK') {
+                            <img [src]="product.image_url || '/demo/images/product/product-placeholder.svg'" [alt]="product.name" loading="lazy" />
+                            @if (product.inventory_status === 'OUTOFSTOCK') {
                                 <span class="product-badge badge-muted">Bientôt disponible</span>
-                            } @else if (product.rating && product.rating >= 5) {
+                            } @else if (product.quantity <= 5) {
                                 <span class="product-badge">Coup de cœur</span>
                             }
                             <button class="favorite-button" type="button" (click)="toggleFavorite(product.id)" [attr.aria-label]="isFavorite(product.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'" [attr.aria-pressed]="isFavorite(product.id)">
                                 <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
                             </button>
-                            @if (product.inventoryStatus !== 'OUTOFSTOCK') {
+                            @if (product.inventory_status !== 'OUTOFSTOCK') {
                                 <button class="quick-add" type="button" (click)="addToCart(product)"><i class="pi pi-plus"></i> Ajouter au panier</button>
                             }
                         </div>
                         <div class="product-details">
-                            <span class="product-category">{{ categoryLabel(product.category) }}</span>
+                            <span class="product-category">{{ product.category_name }}</span>
                             <h3>{{ product.name }}</h3>
                             <div class="product-meta">
                                 <span class="product-price">{{ formatPrice(product.price) }}</span>
-                                @if (product.rating) {
-                                    <span class="product-rating"><i class="pi pi-star-fill"></i> {{ product.rating }}.0</span>
-                                }
                             </div>
                         </div>
                     </article>
                 } @empty {
                     <div class="empty-state"><i class="pi pi-search"></i><strong>Aucun produit trouvé</strong><span>Essayez un autre mot-clé ou une autre catégorie.</span></div>
+                }
                 }
             </div>
         </section>
@@ -211,7 +207,7 @@
                 <div class="cart-list">
                     @for (item of cartItems; track item.product.id; let i = $index) {
                         <div class="cart-line">
-                            <img [src]="'/demo/images/product/' + item.product.image" [alt]="item.product.name ?? 'Produit'" />
+                            <img [src]="item.product.image_url || '/demo/images/product/product-placeholder.svg'" [alt]="item.product.name" />
                             <div class="cart-item-info"><strong>{{ item.product.name }}</strong><span>{{ formatPrice(item.product.price) }} l’unité</span>
                                 <div class="quantity-control" [attr.aria-label]="'Quantité de ' + item.product.name">
                                     <button type="button" [attr.aria-label]="'Diminuer la quantité de ' + item.product.name" (click)="changeQuantity(i, -1)"><i class="pi pi-minus"></i></button>
@@ -219,7 +215,7 @@
                                     <button type="button" [attr.aria-label]="'Augmenter la quantité de ' + item.product.name" (click)="changeQuantity(i, 1)"><i class="pi pi-plus"></i></button>
                                 </div>
                             </div>
-                            <strong class="cart-line-total">{{ formatPrice((item.product.price ?? 0) * item.quantity) }}</strong>
+                            <strong class="cart-line-total">{{ formatPrice(item.product.price * item.quantity) }}</strong>
                             <button type="button" aria-label="Retirer tous ces articles" (click)="removeFromCart(i)"><i class="pi pi-trash"></i></button>
                         </div>
                     }

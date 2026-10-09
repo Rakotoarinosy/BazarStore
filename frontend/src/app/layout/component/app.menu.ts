@@ -20,7 +20,8 @@ export class AppMenu {
                 items: [
                     { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/backoffice/dashboard'] },
                     { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/backoffice/users'] },
-                    { label: 'Catégories', icon: 'pi pi-fw pi-tags', routerLink: ['/backoffice/categories'] }
+                    { label: 'Catégories', icon: 'pi pi-fw pi-tags', routerLink: ['/backoffice/categories'] },
+                    { label: 'Produits', icon: 'pi pi-fw pi-box', routerLink: ['/backoffice/products'] }
                 ]
             },
             {
