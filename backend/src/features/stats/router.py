@@ -14,6 +14,7 @@ from src.domain.user import Role
 from src.features.order.events import OPEN_ORDER_STATUSES
 from src.features.stats.schemas import (
     ActivityItem,
+    BenchmarkAxis,
     BestSeller,
     CustomersKpi,
     DashboardOut,
@@ -73,6 +74,63 @@ def _revenue_between(db: Session, start: datetime, end: datetime | None = None) 
     if end is not None:
         query = query.where(OrderModel.paid_at < end)
     return int(db.scalar(query) or 0)
+
+
+def _period_benchmark(db: Session, start: datetime, end: datetime) -> dict[str, float]:
+    """Indicateurs d'une période [start, end) pour le radar de comparaison."""
+
+    def scalar(query: object) -> float:
+        return float(db.scalar(query) or 0)  # type: ignore[arg-type]
+
+    created = [OrderModel.created_at >= start, OrderModel.created_at < end]
+    paid = [*_paid(), OrderModel.paid_at >= start, OrderModel.paid_at < end]
+    revenue = scalar(select(func.coalesce(func.sum(OrderModel.total_amount), 0)).where(*paid))
+    paid_orders = scalar(select(func.count()).select_from(OrderModel).where(*paid))
+    sold_orders = scalar(
+        select(func.count())
+        .select_from(OrderModel)
+        .where(*created, OrderModel.status.in_(SOLD_STATUSES))
+    )
+    delivered = scalar(
+        select(func.count())
+        .select_from(OrderModel)
+        .where(*created, OrderModel.status == "completed")
+    )
+    return {
+        "orders": scalar(
+            select(func.count())
+            .select_from(OrderModel)
+            .where(*created, OrderModel.status != "cancelled")
+        ),
+        "revenue": revenue,
+        "basket": round(revenue / paid_orders) if paid_orders else 0,
+        "items": scalar(
+            select(func.coalesce(func.sum(OrderItemModel.quantity), 0))
+            .join(OrderModel, OrderItemModel.order_id == OrderModel.id)
+            .where(*created, OrderModel.status.in_(SOLD_STATUSES))
+        ),
+        "customers": scalar(
+            select(func.count())
+            .select_from(UserModel)
+            .where(
+                UserModel.role == Role.CUSTOMER.value,
+                UserModel.created_at >= start,
+                UserModel.created_at < end,
+            )
+        ),
+        "delivery": round(100 * delivered / sold_orders, 1) if sold_orders else 0,
+    }
+
+
+# Axes du radar : (clé, libellé, unité).
+BENCHMARK_AXES = [
+    ("orders", "Commandes", "count"),
+    ("revenue", "Chiffre d'affaires", "ariary"),
+    ("basket", "Panier moyen", "ariary"),
+    ("items", "Articles vendus", "count"),
+    ("customers", "Nouveaux clients", "count"),
+    ("delivery", "Taux de livraison", "percent"),
+]
 
 
 def _activity_kind(order: OrderModel) -> str:
@@ -246,6 +304,14 @@ def dashboard(
         for order in db.scalars(select(OrderModel).order_by(stamp.desc()).limit(ACTIVITY_ITEMS))
     ]
 
+    # ─── Benchmark : ce mois-ci (jusqu'à maintenant) vs mois dernier complet ───
+    current = _period_benchmark(db, month_start, datetime.now(UTC))
+    previous = _period_benchmark(db, last_month_start, month_start)
+    benchmark = [
+        BenchmarkAxis(key=key, label=label, unit=unit, current=current[key], previous=previous[key])
+        for key, label, unit in BENCHMARK_AXES
+    ]
+
     return DashboardOut(
         orders=orders,
         revenue=revenue,
@@ -255,4 +321,5 @@ def dashboard(
         monthly_revenue=list(by_month.values()),
         best_sellers=best_sellers,
         activity=activity,
+        benchmark=benchmark,
     )

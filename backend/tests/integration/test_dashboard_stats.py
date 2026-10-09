@@ -126,3 +126,28 @@ def test_dashboard_recent_orders_and_activity(db_session: Session, shop: None) -
 
     assert stats.recent_orders[-1].reference == "CMD-OLD"
     assert {item.kind for item in stats.activity} == {"paid", "completed", "new", "cancelled"}
+
+
+def test_dashboard_benchmark_compares_this_month_with_last_month(
+    db_session: Session, shop: None
+) -> None:
+    axes = {axis.key: axis for axis in dashboard(db_session, SETTINGS).benchmark}
+
+    assert [key for key in axes] == [
+        "orders",
+        "revenue",
+        "basket",
+        "items",
+        "customers",
+        "delivery",
+    ]
+    assert (axes["orders"].current, axes["orders"].previous) == (
+        2,
+        1,
+    )  # « paid » + « wait » / « old »
+    assert (axes["revenue"].current, axes["revenue"].previous) == (200_000, 150_000)
+    assert (axes["basket"].current, axes["basket"].previous) == (200_000, 150_000)
+    assert (axes["items"].current, axes["items"].previous) == (2, 3)
+    assert (axes["customers"].current, axes["customers"].previous) == (1, 1)
+    assert (axes["delivery"].current, axes["delivery"].previous) == (0, 100.0)
+    assert axes["delivery"].unit == "percent"

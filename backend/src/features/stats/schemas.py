@@ -65,6 +65,16 @@ class ActivityItem(BaseModel):
     at: datetime
 
 
+class BenchmarkAxis(BaseModel):
+    """Un axe du radar « ce mois vs mois dernier » (valeurs brutes, normalisées côté graphique)."""
+
+    key: str
+    label: str
+    unit: str  # ariary | count | percent
+    current: float
+    previous: float
+
+
 class DashboardOut(BaseModel):
     orders: OrdersKpi
     revenue: RevenueKpi
@@ -74,3 +84,4 @@ class DashboardOut(BaseModel):
     monthly_revenue: list[MonthlyRevenue]
     best_sellers: list[BestSeller]
     activity: list[ActivityItem]
+    benchmark: list[BenchmarkAxis]

@@ -1,0 +1,29 @@
+<div class="card mb-8!">
+    <div class="flex items-center justify-between mb-2">
+        <div class="font-semibold text-xl">Benchmark · ce mois vs mois dernier</div>
+    </div>
+    <p class="text-muted-color text-sm mt-0 mb-4">Sur chaque axe, la meilleure des deux périodes vaut 100. Survolez un point pour voir la valeur réelle.</p>
+
+    @if (chartData()) {
+        <p-chart type="radar" [data]="chartData()" [options]="chartOptions()" class="block h-96" />
+
+        <ul class="list-none p-0 m-0 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+            @for (axis of axes(); track axis.key) {
+                <li class="flex items-center justify-between gap-3 border-b border-surface pb-2">
+                    <span class="text-muted-color">{{ axis.label }}</span>
+                    <span class="text-right">
+                        <span class="font-medium text-surface-900 dark:text-surface-0">{{ format(axis, axis.current) }}</span>
+                        @if (trend(axis); as delta) {
+                            <span class="ml-2 text-sm font-medium" [class.text-green-500]="delta > 0" [class.text-red-500]="delta < 0">
+                                {{ delta > 0 ? '▲' : '▼' }} {{ delta > 0 ? '+' : '' }}{{ delta }}{{ axis.unit === 'percent' ? ' pts' : ' %' }}
+                            </span>
+                        }
+                        <div class="text-xs text-muted-color">mois dernier : {{ format(axis, axis.previous) }}</div>
+                    </span>
+                </li>
+            }
+        </ul>
+    } @else {
+        <div class="h-96 flex items-center justify-center text-muted-color"><i class="pi pi-spin pi-spinner mr-2"></i> Chargement…</div>
+    }
+</div>

@@ -6,10 +6,11 @@ import { StatsWidget } from './components/statswidget';
 import { RecentSalesWidget } from './components/recentsaleswidget';
 import { BestSellingWidget } from './components/bestsellingwidget';
 import { RevenueStreamWidget } from './components/revenuestreamwidget';
+import { BenchmarkWidget } from './components/benchmarkwidget';
 
 @Component({
     selector: 'app-dashboard',
-    imports: [StatsWidget, RecentSalesWidget, BestSellingWidget, RevenueStreamWidget, NotificationsWidget],
+    imports: [StatsWidget, RecentSalesWidget, BestSellingWidget, RevenueStreamWidget, BenchmarkWidget, NotificationsWidget],
     templateUrl: './dashboard.html'
 })
 export class Dashboard {

@@ -30,6 +30,16 @@ export interface DashboardStats {
         amount: number;
         at: string;
     }[];
+    benchmark: BenchmarkAxis[];
+}
+
+/** Axe du radar « ce mois vs mois dernier » (valeurs brutes renvoyées par l'API). */
+export interface BenchmarkAxis {
+    key: string;
+    label: string;
+    unit: 'ariary' | 'count' | 'percent';
+    current: number;
+    previous: number;
 }
 
 /** Regroupe les rafales d'événements (paiement + changement de statut…) en un seul rechargement. */
