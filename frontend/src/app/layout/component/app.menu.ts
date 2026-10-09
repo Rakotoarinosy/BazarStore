@@ -24,13 +24,13 @@ export class AppMenu {
     model: MenuItem[] = [];
 
     constructor() {
-        // Compteur réservé à l'équipe : démarre dès que la session est chargée,
-        // s'arrête à la déconnexion ou quand on quitte le backoffice.
+        // Temps réel des commandes (badge + tableau), réservé à l'équipe : démarre dès que
+        // la session est chargée, s'arrête à la déconnexion ou quand on quitte le backoffice.
         toObservable(this.auth.currentUser)
             .pipe(
                 map((user) => STAFF_ROLES.includes(user?.role ?? '')),
                 distinctUntilChanged(),
-                switchMap((isStaff) => (isStaff ? this.orders.watchOpenCount() : EMPTY)),
+                switchMap((isStaff) => (isStaff ? this.orders.watch() : EMPTY)),
                 takeUntilDestroyed(this.destroyRef)
             )
             .subscribe();

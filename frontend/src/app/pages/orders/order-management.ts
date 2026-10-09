@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -62,7 +63,9 @@ export class OrderManagement implements OnInit {
     readonly orders = this.ordersApi.orders;
     readonly loading = this.ordersApi.loading;
     readonly statusFilter = signal<OrderStatus | null>(null);
-    readonly selected = signal<ManagedOrder | null>(null);
+    // Le détail suit la version temps réel de la commande (statut changé ailleurs, paiement reçu…).
+    readonly selectedId = signal<string | null>(null);
+    readonly selected = computed(() => this.orders().find((order) => order.id === this.selectedId()) ?? null);
     readonly updating = signal(false);
     readonly downloading = signal(false);
     dialogVisible = false;
@@ -81,6 +84,15 @@ export class OrderManagement implements OnInit {
             .reduce((total, order) => total + order.total_amount, 0)
     );
 
+    constructor() {
+        this.ordersApi
+            .newOrders()
+            .pipe(takeUntilDestroyed())
+            .subscribe((order) =>
+                this.messages.add({ severity: 'info', summary: 'Nouvelle commande', detail: `${order.reference} · ${order.customer_name} · ${this.formatPrice(order.total_amount)}`, life: 6000 })
+            );
+    }
+
     ngOnInit(): void {
         this.refresh();
     }
@@ -94,7 +106,7 @@ export class OrderManagement implements OnInit {
     }
 
     openOrder(order: ManagedOrder): void {
-        this.selected.set(order);
+        this.selectedId.set(order.id);
         this.dialogVisible = true;
     }
 
@@ -170,8 +182,7 @@ export class OrderManagement implements OnInit {
                 link.download = filename;
                 link.click();
                 URL.revokeObjectURL(url);
-                // Le numéro est attribué au premier téléchargement : on recharge pour l'afficher.
-                if (!order.invoice_number) this.refreshSelected(order.id);
+                // Le numéro de facture attribué au premier téléchargement arrive par le flux SSE.
             },
             error: (error: unknown) => {
                 this.downloading.set(false);
@@ -185,20 +196,12 @@ export class OrderManagement implements OnInit {
         this.ordersApi.updateStatus(order.id, status).subscribe({
             next: (updated) => {
                 this.updating.set(false);
-                if (this.selected()?.id === updated.id) this.selected.set(updated);
                 this.messages.add({ severity: 'success', summary: 'Commande mise à jour', detail: `${updated.reference} · ${STATUS_LABELS[updated.status]}`, life: 3500 });
             },
             error: (error: unknown) => {
                 this.updating.set(false);
                 this.showError(error);
             }
-        });
-    }
-
-    private refreshSelected(orderId: string): void {
-        this.ordersApi.list().subscribe((orders) => {
-            const updated = orders.find((order) => order.id === orderId);
-            if (updated && this.selected()?.id === orderId) this.selected.set(updated);
         });
     }
 

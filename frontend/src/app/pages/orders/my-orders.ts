@@ -1,6 +1,8 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { SseClient } from '../../core/realtime/sse-client';
 
 interface OrderItem {
     id: string;
@@ -55,6 +57,14 @@ export class MyOrders {
     readonly invoiceError = signal('');
 
     constructor() {
+        // Temps réel : statut changé par l'équipe, paiement confirmé, facture émise…
+        inject(SseClient)
+            .stream('/api/v1/orders/mine/stream')
+            .pipe(takeUntilDestroyed())
+            .subscribe((message) => {
+                if (message.event === 'order') this.applyOrder(JSON.parse(message.data) as CustomerOrder);
+            });
+
         this.http.get<CustomerOrder[]>('/api/v1/orders/mine').subscribe({
             next: (orders) => {
                 this.orders.set(orders);
@@ -207,7 +217,9 @@ export class MyOrders {
     }
 
     private applyOrder(updated: CustomerOrder): void {
-        this.orders.update((orders) => orders.map((order) => (order.id === updated.id ? updated : order)));
+        this.orders.update((orders) =>
+            orders.some((order) => order.id === updated.id) ? orders.map((order) => (order.id === updated.id ? updated : order)) : [updated, ...orders]
+        );
         if (this.selectedOrder()?.id === updated.id) this.selectedOrder.set(updated);
     }
 

@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, object_session, selectinload, sessionmaker
 
 from src.domain.errors import DomainError
 from src.domain.user import Role, User
-from src.features.order.events import count_open_orders_in, open_count_events
+from src.features.order.events import count_open_orders_in, order_events
 from src.features.order.schemas import (
     MvolaCallbackIn,
     MvolaPaymentIn,
@@ -25,6 +25,7 @@ from src.features.order.schemas import (
     PaymentConfigOut,
     StripeCheckoutOut,
 )
+from src.features.order.serialization import serialize_order
 from src.infrastructure.config import Settings, get_settings
 from src.infrastructure.documents.invoice_pdf import (
     DEFAULT_LOGO,
@@ -50,6 +51,13 @@ from src.infrastructure.security.deps import get_current_user, require_roles
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 logger = logging.getLogger(__name__)
+
+SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    # Désactive la mise en tampon des proxys (nginx) : chaque événement part tout de suite.
+    "X-Accel-Buffering": "no",
+}
+SSE_DOC = {200: {"content": {"text/event-stream": {}}, "description": "Flux Server-Sent Events"}}
 
 # Délai après lequel un paiement resté « pending » (non validé sur le téléphone) peut être relancé.
 PAYMENT_RETRY_AFTER = timedelta(minutes=3)
@@ -175,22 +183,7 @@ def list_my_orders(
         .where(OrderModel.user_id == user.id)
         .order_by(OrderModel.created_at.desc())
     ).all()
-    order_outputs = [OrderOut.model_validate(order) for order in orders]
-    for order_model, order_output in zip(orders, order_outputs, strict=True):
-        products_by_id = {
-            item.product_id: item.product
-            for item in order_model.items
-            if item.product_id is not None and item.product is not None
-        }
-        for item_output in order_output.items:
-            product = products_by_id.get(item_output.product_id)
-            if item_output.product_image_url is None and product is not None:
-                item_output.product_image_url = (
-                    f"/api/v1/products/images/{product.image_key}"
-                    if product.image_key
-                    else product.image_url
-                )
-    return order_outputs
+    return [serialize_order(order) for order in orders]
 
 
 def _get_user_order(db: Session, order_id: str, user: User) -> OrderModel:
@@ -207,6 +200,20 @@ def _get_user_order(db: Session, order_id: str, user: User) -> OrderModel:
 def _as_aware(value: datetime) -> datetime:
     # SQLite renvoie des datetimes naïfs : on les considère en UTC.
     return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
+@router.get("/mine/stream", response_class=StreamingResponse, responses=SSE_DOC)
+async def stream_my_orders(
+    request: Request,
+    user: User = Depends(get_current_user),
+    factory: sessionmaker[Session] = Depends(get_session_factory),
+) -> StreamingResponse:
+    """Temps réel client : `order` à chaque changement d'une de ses commandes."""
+    return StreamingResponse(
+        order_events(request.is_disconnected, factory, user_id=user.id),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )
 
 
 # ─── Cycle de vie et stock ──────────────────────────────────────────
@@ -516,24 +523,20 @@ def count_open_orders(db: Session = Depends(get_db)) -> OpenOrdersCountOut:
 
 
 @router.get(
-    "/manage/open-count/stream",
+    "/manage/stream",
     response_class=StreamingResponse,
-    responses={200: {"content": {"text/event-stream": {}}, "description": "Flux SSE"}},
+    responses=SSE_DOC,
     dependencies=ORDER_STAFF,
 )
-async def stream_open_orders_count(
+async def stream_orders_for_staff(
     request: Request,
     factory: sessionmaker[Session] = Depends(get_session_factory),
 ) -> StreamingResponse:
-    """Server-Sent Events : `event: open-count` à l'ouverture puis à chaque changement."""
+    """Temps réel backoffice : `open-count` (badge) et `order` (commande créée ou modifiée)."""
     return StreamingResponse(
-        open_count_events(request.is_disconnected, factory),
+        order_events(request.is_disconnected, factory, include_open_count=True),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            # Désactive la mise en tampon des proxys (nginx) : chaque événement part tout de suite.
-            "X-Accel-Buffering": "no",
-        },
+        headers=SSE_HEADERS,
     )
 
 

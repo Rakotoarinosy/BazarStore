@@ -101,7 +101,7 @@
     </p-table>
 </div>
 
-<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(94vw, 46rem)' }" [header]="selected()?.reference ?? 'Commande'" (onHide)="selected.set(null)">
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(94vw, 46rem)' }" [header]="selected()?.reference ?? 'Commande'" (onHide)="selectedId.set(null)">
     @if (selected(); as order) {
         <div class="order-detail">
             <div class="flex flex-wrap items-center gap-2 mb-4">
