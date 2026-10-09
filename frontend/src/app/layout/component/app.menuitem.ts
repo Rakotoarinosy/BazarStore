@@ -32,6 +32,9 @@ export class AppMenuitem {
 
     hasRouterLink = computed(() => !!this.item()?.routerLink);
 
+    /** Badge optionnel : `badgeCount` est un signal (ex. commandes non livrées), 0 = masqué. */
+    badgeCount = computed<number>(() => this.item()?.badgeCount?.() ?? 0);
+
     fullPath = computed(() => {
         const itemPath = this.item()?.path;
         if (!itemPath) return this.parentPath();

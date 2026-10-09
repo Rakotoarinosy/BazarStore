@@ -98,3 +98,7 @@ OrderStatus = Literal["pending", "confirmed", "processing", "shipped", "complete
 
 class OrderStatusUpdateIn(BaseModel):
     status: OrderStatus
+
+
+class OpenOrdersCountOut(BaseModel):
+    count: int

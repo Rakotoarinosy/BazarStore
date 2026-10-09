@@ -5,6 +5,7 @@ from src.features.order.router import (
     OrderStatusTransitionConflictError,
     OrderStockConflictError,
     _mark_stripe_paid,
+    count_open_orders,
     list_orders_for_staff,
     update_order_status,
 )
@@ -100,3 +101,12 @@ def test_paid_order_deducts_stock_even_when_short(db_session: Session, order: Or
     assert order.status == "confirmed"
     assert db_session.get(ProductModel, "p-1").quantity == 0
     assert [o.reference for o in list_orders_for_staff(db_session)] == ["CMD-BO1"]
+
+
+def test_open_count_ignores_delivered_and_cancelled(db_session: Session, order: OrderModel) -> None:
+    assert count_open_orders(db_session).count == 1
+    for status in ("confirmed", "processing", "shipped"):
+        _set(db_session, status)
+        assert count_open_orders(db_session).count == 1
+    _set(db_session, "completed")
+    assert count_open_orders(db_session).count == 0

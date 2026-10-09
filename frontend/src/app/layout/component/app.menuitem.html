@@ -31,6 +31,9 @@
             >
                 <i [ngClass]="item().icon" class="layout-menuitem-icon"></i>
                 <span class="layout-menuitem-text">{{ item().label }}</span>
+                @if (badgeCount(); as count) {
+                    <span class="layout-menuitem-badge" [attr.title]="count + ' ' + (item().badgeTitle ?? '')">{{ count > 99 ? '99+' : count }}</span>
+                }
                 @if (hasChildren()) {
                     <i class="pi pi-fw pi-angle-down layout-submenu-toggler"></i>
                 }
