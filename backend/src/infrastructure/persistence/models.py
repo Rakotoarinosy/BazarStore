@@ -161,6 +161,7 @@ class OrderItemModel(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     line_total: Mapped[int] = mapped_column(Integer, nullable=False)
     order: Mapped[OrderModel] = relationship(back_populates="items")
+    product: Mapped[ProductModel | None] = relationship()
 
     __table_args__ = (
         CheckConstraint("unit_price >= 0", name="ck_order_items_price_nonnegative"),

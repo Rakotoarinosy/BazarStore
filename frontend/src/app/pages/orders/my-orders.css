@@ -1,4 +1,4 @@
-app-my-orders {
+:host {
     display: block;
     min-height: 100vh;
     color: #202b43;
@@ -82,12 +82,7 @@ app-my-orders {
     line-height: 1.6;
 }
 
-.orders-list {
-    display: grid;
-    gap: 1rem;
-}
-
-.order-card {
+.orders-table-wrap {
     overflow: hidden;
     border: 1px solid #e9edf2;
     border-radius: 12px;
@@ -95,32 +90,49 @@ app-my-orders {
     box-shadow: 0 8px 28px rgb(23 39 68 / 4%);
 }
 
-.order-card-header,
-.order-card-total {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
 }
 
-.order-card-header {
+.orders-table th,
+.orders-table td {
+    padding: 1rem 1.1rem;
     border-bottom: 1px solid #eff0f2;
+    white-space: nowrap;
+}
 
-    > div {
-        display: grid;
-        gap: 0.3rem;
-    }
+.orders-table th {
+    color: #778197;
+    background: #fafbfc;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
 
-    time {
-        color: #778197;
-        font-size: 0.78rem;
-    }
+.orders-table td {
+    color: #58647a;
+    font-size: 0.8rem;
 }
 
 .order-reference {
     color: #172744;
     font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.order-date {
+    color: #778197 !important;
+}
+
+.amount-column {
+    text-align: right;
+}
+
+.order-amount {
+    color: #172744 !important;
     font-weight: 800;
 }
 
@@ -143,8 +155,24 @@ app-my-orders {
     background: #fff0f0;
 }
 
-.order-items {
-    padding: 0 1.25rem;
+.order-details-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid #dbe3ed;
+    border-radius: 6px;
+    color: #315e91;
+    background: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+
+    &:hover {
+        border-color: #315e91;
+        background: #f5f8fb;
+    }
 }
 
 .order-item {
@@ -186,7 +214,11 @@ app-my-orders {
     white-space: nowrap;
 }
 
-.order-card-total {
+.order-dialog-total {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 0 0;
+    border-top: 1px solid #eff0f2;
     color: #778197;
     font-size: 0.82rem;
 
@@ -194,6 +226,82 @@ app-my-orders {
         color: #172744;
         font-size: 0.95rem;
     }
+}
+
+.order-dialog-backdrop {
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgb(16 25 42 / 48%);
+}
+
+.order-dialog {
+    width: min(100%, 620px);
+    max-height: min(88vh, 780px);
+    overflow: auto;
+    padding: 1.5rem;
+    border: 1px solid #e9edf2;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 24px 80px rgb(23 39 68 / 22%);
+}
+
+.order-dialog-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eff0f2;
+
+    h2 {
+        margin: 0.4rem 0 0.2rem;
+        color: #172744;
+        font-size: 1.25rem;
+    }
+
+    time {
+        color: #778197;
+        font-size: 0.78rem;
+    }
+}
+
+.order-dialog-close {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid #e4e8ee;
+    border-radius: 50%;
+    color: #58647a;
+    background: #fff;
+    cursor: pointer;
+}
+
+.order-dialog-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    color: #778197;
+    font-size: 0.8rem;
+}
+
+.order-dialog-items {
+    margin-bottom: 1rem;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
 }
 
 .orders-empty,
@@ -260,13 +368,13 @@ app-my-orders {
         padding-top: 2.5rem;
     }
 
-    .order-card-header,
-    .order-card-total {
-        padding-right: 0.85rem;
-        padding-left: 0.85rem;
+    .orders-table-wrap {
+        overflow-x: auto;
     }
 
-    .order-items {
-        padding: 0 0.85rem;
+    .orders-table {
+        min-width: 720px;
     }
+
+    .order-dialog { padding: 1rem; }
 }

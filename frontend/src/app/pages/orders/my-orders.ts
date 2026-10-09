@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 
 interface OrderItem {
@@ -24,29 +24,31 @@ interface CustomerOrder {
     selector: 'app-my-orders',
     standalone: true,
     imports: [RouterModule],
-    templateUrl: './my-orders.html'
+    templateUrl: './my-orders.html',
+    styleUrl: './my-orders.css'
 })
 export class MyOrders {
     private readonly http = inject(HttpClient);
     private readonly router = inject(Router);
 
-    orders: CustomerOrder[] = [];
-    loading = true;
-    errorMessage = '';
+    readonly orders = signal<CustomerOrder[]>([]);
+    readonly selectedOrder = signal<CustomerOrder | null>(null);
+    readonly loading = signal(true);
+    readonly errorMessage = signal('');
 
     constructor() {
         this.http.get<CustomerOrder[]>('/api/v1/orders/mine').subscribe({
             next: (orders) => {
-                this.orders = orders;
-                this.loading = false;
+                this.orders.set(orders);
+                this.loading.set(false);
             },
             error: (error: unknown) => {
-                this.loading = false;
+                this.loading.set(false);
                 if (error instanceof HttpErrorResponse && error.status === 401) {
                     void this.router.navigateByUrl('/auth/login');
                     return;
                 }
-                this.errorMessage = 'Impossible de charger vos commandes. Veuillez réessayer.';
+                this.errorMessage.set('Impossible de charger vos commandes. Veuillez réessayer.');
             }
         });
     }
@@ -69,5 +71,13 @@ export class MyOrders {
             cancelled: 'Annulée'
         };
         return labels[status] ?? status;
+    }
+
+    openDetails(order: CustomerOrder): void {
+        this.selectedOrder.set(order);
+    }
+
+    closeDetails(): void {
+        this.selectedOrder.set(null);
     }
 }

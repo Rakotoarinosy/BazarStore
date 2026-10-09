@@ -35,8 +35,7 @@
                         ],
                         "styles": [
                             "src/assets/styles.scss",
-                            "src/assets/tailwind.css",
-                            "src/app/pages/orders/my-orders.css"
+                            "src/assets/tailwind.css"
                         ],
                         "scripts": []
                     },

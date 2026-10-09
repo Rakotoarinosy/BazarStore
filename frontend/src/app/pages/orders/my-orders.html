@@ -12,11 +12,11 @@
         <h1 id="orders-title">Mes commandes</h1>
         <p class="orders-intro">Retrouvez ici l’historique de vos commandes et le détail de vos achats.</p>
 
-        @if (loading) {
+        @if (loading()) {
             <div class="orders-message" role="status"><i class="pi pi-spin pi-spinner"></i> Chargement de vos commandes…</div>
-        } @else if (errorMessage) {
-            <div class="orders-message orders-error" role="alert">{{ errorMessage }}</div>
-        } @else if (orders.length === 0) {
+        } @else if (errorMessage()) {
+            <div class="orders-message orders-error" role="alert">{{ errorMessage() }}</div>
+        } @else if (orders().length === 0) {
             <div class="orders-empty">
                 <span class="orders-empty-icon"><i class="pi pi-shopping-bag"></i></span>
                 <h2>Pas encore de commande</h2>
@@ -24,32 +24,61 @@
                 <a class="orders-shop-button" routerLink="/">Découvrir les produits</a>
             </div>
         } @else {
-            <div class="orders-list">
-                @for (order of orders; track order.id) {
-                    <article class="order-card">
-                        <header class="order-card-header">
-                            <div>
-                                <span class="order-reference">{{ order.reference }}</span>
-                                <time>{{ formatDate(order.created_at) }}</time>
-                            </div>
-                            <span class="order-status" [attr.data-status]="order.status">{{ statusLabel(order.status) }}</span>
-                        </header>
-                        <div class="order-items">
-                            @for (item of order.items; track item.id) {
-                                <div class="order-item">
-                                    <img [src]="item.product_image_url || '/demo/images/product/product-placeholder.svg'" [alt]="item.product_name" />
-                                    <div class="order-item-name">
-                                        <strong>{{ item.product_name }}</strong>
-                                        <span>{{ item.quantity }} × {{ formatPrice(item.unit_price) }}</span>
-                                    </div>
-                                    <strong class="order-item-total">{{ formatPrice(item.line_total) }}</strong>
-                                </div>
-                            }
-                        </div>
-                        <footer class="order-card-total"><span>Total de la commande</span><strong>{{ formatPrice(order.total_amount) }}</strong></footer>
-                    </article>
-                }
+            <div class="orders-table-wrap">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Commande</th>
+                            <th>Date</th>
+                            <th>Articles</th>
+                            <th>Statut</th>
+                            <th class="amount-column">Total</th>
+                            <th><span class="visually-hidden">Action</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (order of orders(); track order.id) {
+                            <tr>
+                                <td><strong class="order-reference">{{ order.reference }}</strong></td>
+                                <td class="order-date">{{ formatDate(order.created_at) }}</td>
+                                <td>{{ order.items.length }} produit{{ order.items.length > 1 ? 's' : '' }}</td>
+                                <td><span class="order-status" [attr.data-status]="order.status">{{ statusLabel(order.status) }}</span></td>
+                                <td class="amount-column order-amount">{{ formatPrice(order.total_amount) }}</td>
+                                <td><button class="order-details-button" type="button" (click)="openDetails(order)">Détails <i class="pi pi-arrow-right"></i></button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         }
     </section>
+
+    @if (selectedOrder(); as order) {
+        <div class="order-dialog-backdrop" (click)="closeDetails()">
+            <section class="order-dialog" role="dialog" aria-modal="true" aria-labelledby="order-dialog-title" (click)="$event.stopPropagation()">
+                <header class="order-dialog-header">
+                    <div>
+                        <span class="orders-eyebrow">DÉTAIL DE LA COMMANDE</span>
+                        <h2 id="order-dialog-title">{{ order.reference }}</h2>
+                        <time>{{ formatDate(order.created_at) }}</time>
+                    </div>
+                    <button class="order-dialog-close" type="button" aria-label="Fermer les détails" (click)="closeDetails()"><i class="pi pi-times"></i></button>
+                </header>
+                <div class="order-dialog-status"><span>Statut</span><span class="order-status" [attr.data-status]="order.status">{{ statusLabel(order.status) }}</span></div>
+                <div class="order-dialog-items">
+                    @for (item of order.items; track item.id) {
+                        <div class="order-item">
+                            <img [src]="item.product_image_url || '/demo/images/product/product-placeholder.svg'" [alt]="item.product_name" />
+                            <div class="order-item-name">
+                                <strong>{{ item.product_name }}</strong>
+                                <span>{{ item.quantity }} × {{ formatPrice(item.unit_price) }}</span>
+                            </div>
+                            <strong class="order-item-total">{{ formatPrice(item.line_total) }}</strong>
+                        </div>
+                    }
+                </div>
+                <footer class="order-dialog-total"><span>Total de la commande</span><strong>{{ formatPrice(order.total_amount) }}</strong></footer>
+            </section>
+        </div>
+    }
 </main>

@@ -61,7 +61,9 @@ def create_order(
         OrderItemModel(
             product_id=product.id,
             product_name=product.name,
-            product_image_url=product.image_url,
+            product_image_url=(
+                f"/api/v1/products/images/{product.image_key}" if product.image_key else product.image_url
+            ),
             unit_price=product.price,
             quantity=requested[product.id],
             line_total=product.price * requested[product.id],
@@ -94,8 +96,21 @@ def list_my_orders(
 ) -> list[OrderOut]:
     orders = db.scalars(
         select(OrderModel)
-        .options(selectinload(OrderModel.items))
+        .options(selectinload(OrderModel.items).selectinload(OrderItemModel.product))
         .where(OrderModel.user_id == user.id)
         .order_by(OrderModel.created_at.desc())
-    )
-    return [OrderOut.model_validate(order) for order in orders]
+    ).all()
+    order_outputs = [OrderOut.model_validate(order) for order in orders]
+    for order_model, order_output in zip(orders, order_outputs, strict=True):
+        products_by_id = {
+            item.product_id: item.product
+            for item in order_model.items
+            if item.product_id is not None and item.product is not None
+        }
+        for item_output in order_output.items:
+            product = products_by_id.get(item_output.product_id)
+            if item_output.product_image_url is None and product is not None:
+                item_output.product_image_url = (
+                    f"/api/v1/products/images/{product.image_key}" if product.image_key else product.image_url
+                )
+    return order_outputs
