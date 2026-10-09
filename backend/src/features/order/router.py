@@ -7,12 +7,14 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request, Response, status
-from sqlalchemy import func, select
+from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, object_session, selectinload
+from sqlalchemy.orm import Session, object_session, selectinload, sessionmaker
 
 from src.domain.errors import DomainError
 from src.domain.user import Role, User
+from src.features.order.events import count_open_orders_in, open_count_events
 from src.features.order.schemas import (
     MvolaCallbackIn,
     MvolaPaymentIn,
@@ -37,7 +39,7 @@ from src.infrastructure.external.stripe_payments import (
     StripePayments,
     get_stripe_payments,
 )
-from src.infrastructure.persistence.database import get_db
+from src.infrastructure.persistence.database import get_db, get_session_factory
 from src.infrastructure.persistence.models import (
     OrderItemModel,
     OrderModel,
@@ -507,19 +509,32 @@ def list_orders_for_staff(db: Session = Depends(get_db)) -> list[OrderOut]:
     return [OrderOut.model_validate(order) for order in orders]
 
 
-# Commandes encore à traiter ou en cours d'acheminement (badge du menu backoffice).
-OPEN_ORDER_STATUSES = ("pending", "confirmed", "processing", "shipped")
-
-
 @router.get("/manage/open-count", response_model=OpenOrdersCountOut, dependencies=ORDER_STAFF)
 def count_open_orders(db: Session = Depends(get_db)) -> OpenOrdersCountOut:
-    """Nombre de commandes ni livrées ni annulées (requête légère, interrogée régulièrement)."""
-    count = db.scalar(
-        select(func.count())
-        .select_from(OrderModel)
-        .where(OrderModel.status.in_(OPEN_ORDER_STATUSES))
+    """Nombre de commandes ni livrées ni annulées (badge du menu backoffice)."""
+    return OpenOrdersCountOut(count=count_open_orders_in(db))
+
+
+@router.get(
+    "/manage/open-count/stream",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"text/event-stream": {}}, "description": "Flux SSE"}},
+    dependencies=ORDER_STAFF,
+)
+async def stream_open_orders_count(
+    request: Request,
+    factory: sessionmaker[Session] = Depends(get_session_factory),
+) -> StreamingResponse:
+    """Server-Sent Events : `event: open-count` à l'ouverture puis à chaque changement."""
+    return StreamingResponse(
+        open_count_events(request.is_disconnected, factory),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            # Désactive la mise en tampon des proxys (nginx) : chaque événement part tout de suite.
+            "X-Accel-Buffering": "no",
+        },
     )
-    return OpenOrdersCountOut(count=count or 0)
 
 
 @router.patch("/{order_id}/status", response_model=OrderOut, dependencies=ORDER_STAFF)

@@ -41,3 +41,8 @@ def get_db() -> Iterator[Session]:
         yield db
     finally:
         db.close()
+
+
+def get_session_factory() -> sessionmaker[Session]:
+    """Dépendance FastAPI pour les traitements longs (flux SSE) qui ouvrent leurs propres sessions."""
+    return SessionLocal
