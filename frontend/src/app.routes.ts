@@ -9,6 +9,7 @@ import { Categories } from './app/pages/categories/categories';
 import { Products } from './app/pages/products/products';
 import { StorefrontMedia } from './app/pages/storefront-media/storefront-media';
 import { MyOrders } from './app/pages/orders/my-orders';
+import { OrderManagement } from './app/pages/orders/order-management';
 import { adminGuard } from './app/core/auth/admin.guard';
 
 export const appRoutes: Routes = [
@@ -28,6 +29,7 @@ export const appRoutes: Routes = [
             { path: 'users', component: Users, canActivate: [adminGuard] },
             { path: 'categories', component: Categories, canActivate: [adminGuard] },
             { path: 'products', component: Products, canActivate: [adminGuard] },
+            { path: 'orders', component: OrderManagement, canActivate: [adminGuard] },
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'documentation', component: Documentation },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }

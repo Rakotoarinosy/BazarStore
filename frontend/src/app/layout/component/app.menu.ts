@@ -22,7 +22,8 @@ export class AppMenu {
                     { label: 'Images boutique', icon: 'pi pi-fw pi-images', routerLink: ['/backoffice/storefront-media'] },
                     { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/backoffice/users'] },
                     { label: 'Catégories', icon: 'pi pi-fw pi-tags', routerLink: ['/backoffice/categories'] },
-                    { label: 'Produits', icon: 'pi pi-fw pi-box', routerLink: ['/backoffice/products'] }
+                    { label: 'Produits', icon: 'pi pi-fw pi-box', routerLink: ['/backoffice/products'] },
+                    { label: 'Commandes', icon: 'pi pi-fw pi-shopping-cart', routerLink: ['/backoffice/orders'] }
                 ]
             },
             {

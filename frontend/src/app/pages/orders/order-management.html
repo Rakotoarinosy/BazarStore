@@ -1,0 +1,179 @@
+<p-toast />
+<p-confirmdialog />
+
+<div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3 order-stats">
+    <div class="card mb-0 order-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">À traiter</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ toProcessCount() }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-orange-100 dark:bg-orange-400/10 order-stat-icon"><i class="pi pi-inbox text-orange-500 text-xl"></i></span>
+    </div>
+    <div class="card mb-0 order-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">En préparation / expédiées</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ inProgressCount() }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-blue-100 dark:bg-blue-400/10 order-stat-icon"><i class="pi pi-truck text-blue-500 text-xl"></i></span>
+    </div>
+    <div class="card mb-0 order-stat-card">
+        <div><span class="block text-muted-color font-medium mb-2">Encaissé</span><span class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ formatPrice(collectedRevenue()) }}</span></div>
+        <span class="flex items-center justify-center rounded-border bg-green-100 dark:bg-green-400/10 order-stat-icon"><i class="pi pi-wallet text-green-500 text-xl"></i></span>
+    </div>
+</div>
+
+<div class="card">
+    <p-toolbar styleClass="mb-5">
+        <ng-template #start>
+            <div class="flex flex-wrap items-center gap-3">
+                <p-select
+                    [options]="statusOptions"
+                    [ngModel]="statusFilter()"
+                    (ngModelChange)="statusFilter.set($event)"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Tous les statuts"
+                    [showClear]="true"
+                    styleClass="order-status-filter"
+                    ariaLabel="Filtrer par statut"
+                />
+                <p-button icon="pi pi-refresh" label="Actualiser" severity="secondary" [outlined]="true" [loading]="loading()" (onClick)="refresh()" />
+            </div>
+        </ng-template>
+        <ng-template #end>
+            <span class="p-input-icon-left">
+                <i class="pi pi-search"></i>
+                <input pInputText type="search" placeholder="Référence, client, e-mail..." aria-label="Rechercher une commande" (input)="onSearch($event)" />
+            </span>
+        </ng-template>
+    </p-toolbar>
+
+    <p-table
+        #ordersTable
+        [value]="filteredOrders()"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [globalFilterFields]="['reference', 'customer_name', 'customer_email', 'invoice_number']"
+        [rowHover]="true"
+        dataKey="id"
+        sortField="created_at"
+        [sortOrder]="-1"
+        currentPageReportTemplate="{first}–{last} sur {totalRecords} commandes"
+        [showCurrentPageReport]="true"
+    >
+        <ng-template #caption>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-semibold m-0">Gestion des commandes</h2>
+                    <p class="text-muted-color mt-2 mb-0">Suivez chaque commande de la confirmation à la livraison.</p>
+                </div>
+                <span class="text-muted-color">{{ filteredOrders().length }} commande(s)</span>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="reference">Commande <p-sortIcon field="reference" /></th>
+                <th pSortableColumn="created_at">Date <p-sortIcon field="created_at" /></th>
+                <th pSortableColumn="customer_name">Client <p-sortIcon field="customer_name" /></th>
+                <th>Articles</th>
+                <th pSortableColumn="total_amount">Total <p-sortIcon field="total_amount" /></th>
+                <th>Paiement</th>
+                <th pSortableColumn="status">Statut <p-sortIcon field="status" /></th>
+                <th style="width: 5rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-order>
+            <tr class="order-row" (click)="openOrder(order)">
+                <td><code>{{ order.reference }}</code></td>
+                <td class="whitespace-nowrap">{{ formatDate(order.created_at) }}</td>
+                <td>
+                    <div class="font-medium">{{ order.customer_name }}</div>
+                    <small class="text-muted-color">{{ order.customer_email }}</small>
+                </td>
+                <td>{{ itemCount(order) }}</td>
+                <td class="whitespace-nowrap font-medium">{{ formatPrice(order.total_amount) }}</td>
+                <td><p-tag [value]="paymentLabel(order)" [severity]="paymentSeverity(order)" /></td>
+                <td><p-tag [value]="statusLabel(order.status)" [severity]="statusSeverity(order.status)" /></td>
+                <td>
+                    <p-button icon="pi pi-eye" [rounded]="true" [outlined]="true" aria-label="Voir la commande" (onClick)="$event.stopPropagation(); openOrder(order)" />
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr><td colspan="8" class="text-center py-8 text-muted-color">Aucune commande à afficher.</td></tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(94vw, 46rem)' }" [header]="selected()?.reference ?? 'Commande'" (onHide)="selected.set(null)">
+    @if (selected(); as order) {
+        <div class="order-detail">
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                <p-tag [value]="statusLabel(order.status)" [severity]="statusSeverity(order.status)" />
+                <p-tag [value]="paymentLabel(order)" [severity]="paymentSeverity(order)" />
+                <span class="text-muted-color text-sm ml-auto">Passée le {{ formatDate(order.created_at) }}</span>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 mb-5">
+                <div class="order-detail-block">
+                    <span class="order-detail-label">Client</span>
+                    <strong>{{ order.customer_name }}</strong>
+                    <a [href]="'mailto:' + order.customer_email">{{ order.customer_email }}</a>
+                </div>
+                <div class="order-detail-block">
+                    <span class="order-detail-label">Paiement</span>
+                    <strong>{{ paymentLabel(order) }}</strong>
+                    <span class="text-muted-color">{{ order.paid_at ? 'Le ' + formatDate(order.paid_at) : 'Aucun paiement reçu' }}</span>
+                </div>
+            </div>
+
+            <div class="order-detail-items">
+                @for (item of order.items; track item.id) {
+                    <div class="order-detail-item">
+                        <img [src]="item.product_image_url || '/demo/images/product/product-placeholder.svg'" [alt]="item.product_name" />
+                        <div class="flex-1">
+                            <div class="font-medium">{{ item.product_name }}</div>
+                            <small class="text-muted-color">{{ item.quantity }} × {{ formatPrice(item.unit_price) }}</small>
+                        </div>
+                        <strong>{{ formatPrice(item.line_total) }}</strong>
+                    </div>
+                }
+            </div>
+            <div class="order-detail-total">
+                <span>Total</span>
+                <strong>{{ formatPrice(order.total_amount) }}</strong>
+            </div>
+
+            @if (order.status !== 'cancelled') {
+                <div class="order-detail-invoice">
+                    <span><i class="pi pi-file-pdf"></i> {{ order.invoice_number ? 'Facture ' + order.invoice_number : 'Facture pas encore émise' }}</span>
+                    <p-button
+                        [label]="order.invoice_number ? 'Télécharger' : 'Émettre et télécharger'"
+                        icon="pi pi-download"
+                        severity="secondary"
+                        [outlined]="true"
+                        size="small"
+                        [loading]="downloading()"
+                        (onClick)="downloadInvoice(order)"
+                    />
+                </div>
+            }
+        </div>
+    }
+    <ng-template #footer>
+        @if (selected(); as order) {
+            @if (nextStatuses(order).length) {
+                <div class="flex flex-wrap justify-end gap-2">
+                    @for (status of nextStatuses(order); track status) {
+                        <p-button
+                            [label]="action(status).label"
+                            [icon]="action(status).icon"
+                            [severity]="action(status).severity"
+                            [outlined]="status === 'cancelled'"
+                            [disabled]="updating()"
+                            (onClick)="changeStatus(order, status)"
+                        />
+                    }
+                </div>
+            } @else {
+                <span class="text-muted-color">Cette commande est {{ statusLabel(order.status).toLowerCase() }} : plus aucune action possible.</span>
+            }
+        }
+    </ng-template>
+</p-dialog>

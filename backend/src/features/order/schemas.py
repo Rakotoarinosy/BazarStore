@@ -2,6 +2,7 @@
 
 import re
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -55,6 +56,7 @@ class OrderOut(BaseModel):
     payment_reference: str | None = None
     paid_at: datetime | None = None
     invoice_number: str | None = None
+    updated_at: datetime | None = None
     items: list[OrderItemOut]
 
 
@@ -89,3 +91,10 @@ class StripeCheckoutOut(BaseModel):
 
 class PaymentConfigOut(BaseModel):
     card_enabled: bool
+
+
+OrderStatus = Literal["pending", "confirmed", "processing", "shipped", "completed", "cancelled"]
+
+
+class OrderStatusUpdateIn(BaseModel):
+    status: OrderStatus

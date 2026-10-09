@@ -86,7 +86,7 @@ export class MyOrders {
             confirmed: 'Confirmée',
             processing: 'En préparation',
             shipped: 'Expédiée',
-            completed: 'Terminée',
+            completed: 'Livrée',
             cancelled: 'Annulée'
         };
         return labels[status] ?? status;

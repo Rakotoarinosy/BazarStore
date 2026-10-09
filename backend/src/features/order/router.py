@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, object_session, selectinload
 
 from src.domain.errors import DomainError
 from src.domain.user import Role, User
@@ -18,6 +18,7 @@ from src.features.order.schemas import (
     MvolaPaymentIn,
     OrderCreateIn,
     OrderOut,
+    OrderStatusUpdateIn,
     PaymentConfigOut,
     StripeCheckoutOut,
 )
@@ -42,7 +43,7 @@ from src.infrastructure.persistence.models import (
     ProductCategoryModel,
     ProductModel,
 )
-from src.infrastructure.security.deps import get_current_user
+from src.infrastructure.security.deps import get_current_user, require_roles
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 logger = logging.getLogger(__name__)
@@ -205,6 +206,82 @@ def _as_aware(value: datetime) -> datetime:
     return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
+# ─── Cycle de vie et stock ──────────────────────────────────────────
+
+# Transitions autorisées depuis le backoffice (livrée et annulée sont des états finaux).
+ORDER_TRANSITIONS: dict[str, set[str]] = {
+    "pending": {"confirmed", "cancelled"},
+    "confirmed": {"processing", "cancelled"},
+    "processing": {"shipped", "cancelled"},
+    "shipped": {"completed"},
+}
+
+
+class OrderStatusTransitionConflictError(DomainError):
+    def __init__(self, current: str, target: str) -> None:
+        super().__init__(f"Impossible de passer une commande « {current} » au statut « {target} ».")
+
+
+class OrderStockConflictError(DomainError):
+    def __init__(self, product_name: str) -> None:
+        super().__init__(
+            f"Stock insuffisant pour « {product_name} » : la commande ne peut pas être confirmée."
+        )
+
+
+def _locked_products(order: OrderModel) -> dict[str, ProductModel]:
+    db = object_session(order)
+    product_ids = [item.product_id for item in order.items if item.product_id]
+    if db is None or not product_ids:
+        return {}
+    products = db.scalars(
+        select(ProductModel)
+        .where(ProductModel.id.in_(product_ids))
+        .order_by(ProductModel.id)
+        .with_for_update()
+    ).all()
+    return {product.id: product for product in products}
+
+
+def _deduct_stock(order: OrderModel, *, strict: bool) -> None:
+    """Retire les quantités commandées du stock (une seule fois par commande).
+
+    strict=True (confirmation manuelle) refuse si le stock manque ; après un paiement
+    déjà encaissé (strict=False), le stock est ramené à zéro et l'écart est journalisé.
+    """
+    if order.stock_deducted:
+        return
+    products = _locked_products(order)
+    for item in order.items:
+        product = products.get(item.product_id or "")
+        if product is None:
+            continue
+        if product.quantity < item.quantity:
+            if strict:
+                raise OrderStockConflictError(item.product_name)
+            logger.warning(
+                "Stock insufficient for %s on paid order %s", product.code, order.reference
+            )
+        product.quantity = max(product.quantity - item.quantity, 0)
+    order.stock_deducted = True
+
+
+def _restore_stock(order: OrderModel) -> None:
+    if not order.stock_deducted:
+        return
+    products = _locked_products(order)
+    for item in order.items:
+        product = products.get(item.product_id or "")
+        if product is not None:
+            product.quantity += item.quantity
+    order.stock_deducted = False
+
+
+def _confirm_order(order: OrderModel, *, strict: bool) -> None:
+    _deduct_stock(order, strict=strict)
+    order.status = "confirmed"
+
+
 def _refresh_mvola_status(order: OrderModel, mvola: MvolaClient) -> None:
     """Relit le statut chez MVola et l'applique à la commande (sans commit)."""
     if order.payment_status != "pending" or not order.payment_correlation_id:
@@ -215,7 +292,7 @@ def _refresh_mvola_status(order: OrderModel, mvola: MvolaClient) -> None:
         order.payment_status = "completed"
         order.payment_reference = result.transaction_reference
         order.paid_at = datetime.now(UTC)
-        order.status = "confirmed"
+        _confirm_order(order, strict=False)
     elif result.status == "failed":
         order.payment_status = "failed"
 
@@ -304,7 +381,7 @@ def mvola_callback(
 def _mark_stripe_paid(order: OrderModel) -> None:
     order.payment_status = "completed"
     order.paid_at = datetime.now(UTC)
-    order.status = "confirmed"
+    _confirm_order(order, strict=False)
 
 
 def _refresh_stripe_status(order: OrderModel, payments: StripePayments) -> None:
@@ -411,6 +488,52 @@ async def stripe_webhook(
             _mark_stripe_paid(order)
             db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ─── Backoffice ─────────────────────────────────────────────────────
+
+ORDER_STAFF = [Depends(require_roles(Role.COMMERCIAL))]  # ADMIN toujours autorisé
+
+
+@router.get("/manage", response_model=list[OrderOut], dependencies=ORDER_STAFF)
+def list_orders_for_staff(db: Session = Depends(get_db)) -> list[OrderOut]:
+    """Toutes les commandes, les plus récentes d'abord (filtres et recherche côté backoffice)."""
+    orders = db.scalars(
+        select(OrderModel)
+        .options(selectinload(OrderModel.items).selectinload(OrderItemModel.product))
+        .order_by(OrderModel.created_at.desc())
+    ).all()
+    return [OrderOut.model_validate(order) for order in orders]
+
+
+@router.patch("/{order_id}/status", response_model=OrderOut, dependencies=ORDER_STAFF)
+def update_order_status(
+    order_id: str,
+    payload: OrderStatusUpdateIn,
+    db: Session = Depends(get_db),
+) -> OrderOut:
+    """Fait avancer une commande dans son cycle (confirmée → en préparation → expédiée → livrée)."""
+    order = db.scalars(
+        select(OrderModel)
+        .options(selectinload(OrderModel.items))
+        .where(OrderModel.id == order_id)
+        .with_for_update()
+    ).first()
+    if order is None:
+        raise OrderNotFoundError()
+    if payload.status not in ORDER_TRANSITIONS.get(order.status, set()):
+        raise OrderStatusTransitionConflictError(order.status, payload.status)
+
+    if payload.status == "confirmed":
+        _confirm_order(order, strict=True)
+    elif payload.status == "cancelled":
+        _restore_stock(order)
+        order.status = "cancelled"
+    else:
+        order.status = payload.status
+    db.commit()
+    db.refresh(order)
+    return OrderOut.model_validate(order)
 
 
 # ─── Factures ───────────────────────────────────────────────────────

@@ -20,6 +20,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    false,
     true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -150,6 +151,11 @@ class OrderModel(Base):
         String(24), unique=True, index=True, nullable=True
     )
     invoice_issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Stock décrémenté à la confirmation, restitué si la commande est annulée ensuite.
+    stock_deducted: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false(), nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=True
+    )
     user: Mapped[UserModel | None] = relationship(back_populates="orders")
     items: Mapped[list["OrderItemModel"]] = relationship(
         back_populates="order", cascade="all, delete-orphan", order_by="OrderItemModel.id"
