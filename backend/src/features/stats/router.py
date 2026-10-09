@@ -11,7 +11,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.domain.user import Role
-from src.features.order.events import OPEN_ORDER_STATUSES
 from src.features.stats.schemas import (
     ActivityItem,
     BenchmarkAxis,
@@ -32,6 +31,7 @@ from src.infrastructure.persistence.models import (
     ProductModel,
     UserModel,
 )
+from src.infrastructure.persistence.order_feed import OPEN_ORDER_STATUSES
 from src.infrastructure.security.deps import require_roles
 
 router = APIRouter(

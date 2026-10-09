@@ -8,7 +8,6 @@ Le score dépend de l'ancienneté : la file est recalculée à chaque lecture (r
 """
 
 from fastapi import APIRouter, Depends, Query
-from fastapi import status as http_status
 from sqlalchemy.orm import Session
 
 from src.domain.demande import DemandeRepository, Status

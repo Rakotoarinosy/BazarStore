@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, object_session, selectinload, sessionmaker
 
 from src.domain.errors import DomainError
 from src.domain.user import Role, User
-from src.features.order.events import count_open_orders_in, order_events
+from src.features.order.events import OrderPoll, order_events
 from src.features.order.schemas import (
     MvolaCallbackIn,
     MvolaPaymentIn,
@@ -25,7 +25,6 @@ from src.features.order.schemas import (
     PaymentConfigOut,
     StripeCheckoutOut,
 )
-from src.features.order.serialization import serialize_order
 from src.infrastructure.config import Settings, get_settings
 from src.infrastructure.documents.invoice_pdf import (
     DEFAULT_LOGO,
@@ -47,9 +46,55 @@ from src.infrastructure.persistence.models import (
     ProductCategoryModel,
     ProductModel,
 )
+from src.infrastructure.persistence.order_feed import (
+    OrderChangeCursor,
+    count_open_orders_in,
+    order_changes,
+)
 from src.infrastructure.security.deps import get_current_user, require_roles
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+def serialize_order(order: OrderModel) -> OrderOut:
+    """OrderOut avec, pour les anciennes lignes sans image, l'image actuelle du produit."""
+    output = OrderOut.model_validate(order)
+    products_by_id = {
+        item.product_id: item.product
+        for item in order.items
+        if item.product_id is not None and item.product is not None
+    }
+    for item_output in output.items:
+        product = products_by_id.get(item_output.product_id)
+        if item_output.product_image_url is None and product is not None:
+            item_output.product_image_url = (
+                f"/api/v1/products/images/{product.image_key}"
+                if product.image_key
+                else product.image_url
+            )
+    return output
+
+
+def make_order_poll(
+    factory: sessionmaker[Session], *, user_id: str | None, include_open_count: bool
+) -> OrderPoll:
+    """Lecture en base pour un flux SSE : commandes modifiées (+ compteur pour l'équipe)."""
+    cursor = OrderChangeCursor(user_id)
+
+    def poll(first: bool) -> tuple[list[dict[str, object]], int | None]:
+        # Session courte : aucune connexion n'est gardée pendant toute la durée du flux.
+        with factory() as session:
+            if first:
+                cursor.start(session)
+            changed = [
+                serialize_order(order).model_dump(mode="json") for order in cursor.changes(session)
+            ]
+            count = count_open_orders_in(session) if include_open_count else None
+            return changed, count
+
+    return poll
+
+
 logger = logging.getLogger(__name__)
 
 SSE_HEADERS = {
@@ -210,7 +255,11 @@ async def stream_my_orders(
 ) -> StreamingResponse:
     """Temps réel client : `order` à chaque changement d'une de ses commandes."""
     return StreamingResponse(
-        order_events(request.is_disconnected, factory, user_id=user.id),
+        order_events(
+            request.is_disconnected,
+            make_order_poll(factory, user_id=user.id, include_open_count=False),
+            lambda: order_changes.version,
+        ),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
@@ -534,7 +583,11 @@ async def stream_orders_for_staff(
 ) -> StreamingResponse:
     """Temps réel backoffice : `open-count` (badge) et `order` (commande créée ou modifiée)."""
     return StreamingResponse(
-        order_events(request.is_disconnected, factory, include_open_count=True),
+        order_events(
+            request.is_disconnected,
+            make_order_poll(factory, user_id=None, include_open_count=True),
+            lambda: order_changes.version,
+        ),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )

@@ -6,8 +6,10 @@ import pytest
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.features.order.events import _ChangeCursor, order_changes, order_events
+from src.features.order.events import order_events
+from src.features.order.router import make_order_poll
 from src.infrastructure.persistence.models import OrderModel, UserModel
+from src.infrastructure.persistence.order_feed import OrderChangeCursor, order_changes
 
 pytestmark = pytest.mark.anyio
 
@@ -31,6 +33,11 @@ def _parse(event: str) -> tuple[str, dict]:
 
 async def _connected() -> bool:
     return False
+
+
+def _stream(factory: sessionmaker[Session], *, user_id: str | None, include_open_count: bool):  # type: ignore[no-untyped-def]
+    poll = make_order_poll(factory, user_id=user_id, include_open_count=include_open_count)
+    return order_events(_connected, poll, lambda: order_changes.version, max_seconds=10)
 
 
 @pytest.fixture
@@ -66,7 +73,7 @@ async def test_commits_touching_orders_bump_the_version(db_session: Session) -> 
 async def test_staff_stream_pushes_new_orders_status_changes_and_count(
     factory: sessionmaker[Session],
 ) -> None:
-    stream = order_events(_connected, factory, include_open_count=True, max_seconds=10)
+    stream = _stream(factory, user_id=None, include_open_count=True)
     assert await anext(stream) == "retry: 3000\n\n"
     assert _parse(await anext(stream)) == ("open-count", {"count": 0})
 
@@ -87,7 +94,7 @@ async def test_staff_stream_pushes_new_orders_status_changes_and_count(
 
 
 async def test_customer_stream_only_sees_own_orders(factory: sessionmaker[Session]) -> None:
-    stream = order_events(_connected, factory, user_id="alice", max_seconds=10)
+    stream = _stream(factory, user_id="alice", include_open_count=False)
     assert await anext(stream) == "retry: 3000\n\n"
 
     # La commande de Bob est validée en premier : seule celle d'Alice doit arriver.
@@ -110,7 +117,7 @@ async def test_cursor_catches_orders_committed_out_of_order(factory: sessionmake
         session.add(recent)
         session.commit()
 
-        cursor = _ChangeCursor(user_id=None)
+        cursor = OrderChangeCursor(user_id=None)
         cursor.start(session)
         # Ouverture du flux : les changements récents sont renvoyés (filet de sécurité).
         assert [order.id for order in cursor.changes(session)] == ["o-recent"]
@@ -129,5 +136,8 @@ async def test_stream_stops_when_client_disconnects(factory: sessionmaker[Sessio
     async def disconnected() -> bool:
         return True
 
-    events = [event async for event in order_events(disconnected, factory)]
+    poll = make_order_poll(factory, user_id=None, include_open_count=False)
+    events = [
+        event async for event in order_events(disconnected, poll, lambda: order_changes.version)
+    ]
     assert events == ["retry: 3000\n\n"]

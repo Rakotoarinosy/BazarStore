@@ -1,0 +1,53 @@
+# Production BazarStore — déployé dans /srv/BazarStore par GitHub Actions.
+# Les images sont construites par la CI (GHCR) ; IMAGE_TAG est le commit déployé.
+# Seul le nginx de l'hôte (HTTPS) atteint les conteneurs : ports publiés sur 127.0.0.1.
+
+name: bazarstore
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env # POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  api:
+    image: ghcr.io/rakotoarinosy/bazarstore-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # api.bazarstore.rakotoarinosy.com (webhook Stripe, accès direct à l'API)
+      - "127.0.0.1:${API_PORT:-8070}:8000"
+    logging: *logging
+
+  web:
+    image: ghcr.io/rakotoarinosy/bazarstore-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      # bazarstore.rakotoarinosy.com (site + /api/ relayé vers le service api)
+      - "127.0.0.1:${WEB_PORT:-4270}:80"
+    volumes:
+      # Identifiant Google du site, propre à l'environnement.
+      - ./runtime-config.json:/usr/share/nginx/html/runtime-config.json:ro
+    logging: *logging
+
+volumes:
+  postgres_data:

@@ -1,11 +1,13 @@
 from datetime import UTC, datetime, timedelta
 
-import pytest
-from src.domain.demande.priority import (
-    PriorityLevel, compute_score, is_late, level_for, late_since,
-)
 from src.domain.demande.entities import Status
-
+from src.domain.demande.priority import (
+    PriorityLevel,
+    compute_score,
+    is_late,
+    late_since,
+    level_for,
+)
 
 NOW = datetime.now(UTC)
 

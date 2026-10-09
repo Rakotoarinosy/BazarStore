@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from minio import Minio
-from minio.error import S3Error
 
 from src.domain.errors import DomainError
 from src.infrastructure.config import get_settings

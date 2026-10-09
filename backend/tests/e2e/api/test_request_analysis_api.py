@@ -107,7 +107,7 @@ async def _request_with_agents(client: httpx.AsyncClient) -> tuple[str, dict, di
 async def test_analyze_returns_suggestion_without_modifying_request(
     client: httpx.AsyncClient, analyzer: FakeAnalyzer
 ) -> None:
-    request_id, marc, off = await _request_with_agents(client)
+    request_id, marc, _off = await _request_with_agents(client)
 
     response = await client.post(f"{REQUESTS}/{request_id}/analyze")
 

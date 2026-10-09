@@ -1,0 +1,7 @@
+node_modules
+dist
+.angular
+.vscode
+.git
+coverage
+public/runtime-config.local.json

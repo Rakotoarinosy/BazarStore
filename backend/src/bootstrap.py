@@ -6,7 +6,7 @@ puis RETIRER le mot de passe du .env.
 
 import logging
 
-from src.domain.user import Role
+from src.domain.user import Role, UserConflictError
 from src.features.user.schemas import CreateUserIn
 from src.features.user.use_cases import create_user
 from src.infrastructure.config import get_settings
@@ -36,6 +36,9 @@ def ensure_bootstrap_admin() -> None:
             )
             create_user(dto, repo, Argon2PasswordHasher())
             logger.info("bootstrap admin created", extra={"email": dto.email})
+    except UserConflictError:
+        # Plusieurs workers uvicorn démarrent en même temps : un autre l'a créé à l'instant.
+        logger.info("bootstrap admin already created by another worker")
     except Exception:
         # Ne bloque pas le démarrage (ex. migrations pas encore appliquées, mot de passe trop faible).
         logger.exception("bootstrap admin failed")

@@ -139,6 +139,15 @@ npm run build             # build de production
 npm test                  # tests frontend
 ```
 
+## Déploiement
+
+Chaque push sur `main` est testé puis déployé automatiquement par GitHub Actions (Docker, VPS) :
+
+- site : https://bazarstore.rakotoarinosy.com
+- API : https://api.bazarstore.rakotoarinosy.com
+
+Installation du serveur, secrets et exploitation : voir [deploy/README.md](deploy/README.md).
+
 ## Structure du dépôt
 
 ```text
