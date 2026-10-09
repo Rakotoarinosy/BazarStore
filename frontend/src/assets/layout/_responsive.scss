@@ -84,6 +84,24 @@
             transition:
                 transform 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99),
                 left 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99);
+
+            .sidebar-mobile-close {
+                position: absolute;
+                top: 0.75rem;
+                right: 0.75rem;
+                z-index: 2;
+                display: inline-flex;
+                width: 2.25rem;
+                height: 2.25rem;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid var(--surface-border);
+                border-radius: 50%;
+                background: var(--surface-card);
+                color: var(--text-color);
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+            }
         }
 
         .layout-mask {

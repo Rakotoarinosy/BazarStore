@@ -1,5 +1,14 @@
 
         <div class="layout-sidebar">
+            <button
+                class="sidebar-mobile-close"
+                type="button"
+                aria-label="Fermer le menu"
+                title="Fermer le menu"
+                (click)="closeMobileMenu()"
+            >
+                <i class="pi pi-times" aria-hidden="true"></i>
+            </button>
             <app-menu></app-menu>
         </div>
     

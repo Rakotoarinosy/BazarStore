@@ -61,6 +61,16 @@ export class AppSidebar implements OnInit, OnDestroy {
         this.unbindOutsideClickListener();
     }
 
+    closeMobileMenu(): void {
+        this.layoutService.layoutState.update((state) => ({
+            ...state,
+            overlayMenuActive: false,
+            staticMenuMobileActive: false,
+            mobileMenuActive: false,
+            menuHoverActive: false
+        }));
+    }
+
     private onRouteChange(path: string) {
         this.layoutService.layoutState.update((val) => ({
             ...val,
