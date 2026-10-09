@@ -77,7 +77,18 @@
                         </div>
                     }
                 </div>
-                <footer class="order-dialog-total"><span>Total de la commande</span><strong>{{ formatPrice(order.total_amount) }}</strong></footer>
+                <footer class="order-dialog-total">
+                    <span>Total de la commande</span>
+                    <strong>{{ formatPrice(order.total_amount) }}</strong>
+                </footer>
+                @if (order.status === 'pending') {
+                    <div class="order-payment-actions">
+                        <button class="order-pay-button" type="button" (click)="startPayment()">Payer la commande <i class="pi pi-arrow-right"></i></button>
+                        @if (paymentMessage()) {
+                            <p class="order-payment-message" role="status">{{ paymentMessage() }}</p>
+                        }
+                    </div>
+                }
             </section>
         </div>
     }

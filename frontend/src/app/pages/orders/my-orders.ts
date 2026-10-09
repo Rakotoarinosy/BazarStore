@@ -35,6 +35,7 @@ export class MyOrders {
     readonly selectedOrder = signal<CustomerOrder | null>(null);
     readonly loading = signal(true);
     readonly errorMessage = signal('');
+    readonly paymentMessage = signal('');
 
     constructor() {
         this.http.get<CustomerOrder[]>('/api/v1/orders/mine').subscribe({
@@ -74,10 +75,18 @@ export class MyOrders {
     }
 
     openDetails(order: CustomerOrder): void {
+        this.paymentMessage.set('');
         this.selectedOrder.set(order);
+    }
+
+    startPayment(): void {
+        this.paymentMessage.set(
+            'Le paiement Mobile Money n’est pas encore configuré. Aucun paiement n’a été lancé. Les accès marchands MVola, Orange Money ou Airtel Money sont nécessaires pour payer cette commande.'
+        );
     }
 
     closeDetails(): void {
         this.selectedOrder.set(null);
+        this.paymentMessage.set('');
     }
 }
