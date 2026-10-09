@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { EMPTY, catchError, finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -11,9 +12,12 @@ import { CatalogProduct, ProductCatalogStore } from '../../core/products/product
     templateUrl: './landing.html'
 })
 export class Landing {
+    private readonly http = inject(HttpClient);
     private readonly router = inject(Router);
     readonly catalog = inject(ProductCatalogStore);
     readonly auth = inject(AuthService);
+    readonly heroMainImage = signal<string | null>(null);
+    readonly heroSecondaryImage = signal<string | null>(null);
 
     readonly currentYear = new Date().getFullYear();
     searchTerm = '';
@@ -27,6 +31,12 @@ export class Landing {
 
     constructor() {
         this.catalog.load(true).subscribe();
+        this.http.get<{ hero_main_image_url: string | null; hero_secondary_image_url: string | null }>('/api/v1/storefront/settings').subscribe({
+            next: (settings) => {
+                this.heroMainImage.set(settings.hero_main_image_url);
+                this.heroSecondaryImage.set(settings.hero_secondary_image_url);
+            }
+        });
         // Restaure la session depuis le cookie HttpOnly après un rechargement.
         this.auth
             .refresh()

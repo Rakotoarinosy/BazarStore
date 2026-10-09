@@ -34,14 +34,14 @@ class MinioProductImageStorage:
     def __init__(self) -> None:
         self.settings = get_settings()
 
-    def upload(self, contents: bytes, content_type: str) -> str:
+    def upload(self, contents: bytes, content_type: str, namespace: str = "products") -> str:
         normalized_type = content_type.lower().split(";", maxsplit=1)[0].strip()
         extension = self._extension_for(contents, normalized_type)
         client = self._client()
         try:
             if not client.bucket_exists(self.settings.minio_bucket):
                 client.make_bucket(self.settings.minio_bucket)
-            object_name = f"products/{uuid4().hex}.{extension}"
+            object_name = f"{namespace}/{uuid4().hex}.{extension}"
             client.put_object(
                 self.settings.minio_bucket,
                 object_name,

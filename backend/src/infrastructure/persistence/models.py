@@ -83,10 +83,20 @@ class ProductCategoryModel(Base):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     slug: Mapped[str] = mapped_column(String(140), unique=True, index=True, nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", server_default="", nullable=False)
+    image_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     products: Mapped[list["ProductModel"]] = relationship(back_populates="category", passive_deletes=True)
+
+
+class StorefrontSettingsModel(Base):
+    __tablename__ = "storefront_settings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default="default")
+    hero_main_image_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    hero_secondary_image_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 
 class ProductModel(Base):

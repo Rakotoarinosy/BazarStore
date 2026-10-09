@@ -7,6 +7,7 @@ import { Notfound } from './app/pages/notfound/notfound';
 import { Users } from './app/pages/users/users';
 import { Categories } from './app/pages/categories/categories';
 import { Products } from './app/pages/products/products';
+import { StorefrontMedia } from './app/pages/storefront-media/storefront-media';
 import { adminGuard } from './app/core/auth/admin.guard';
 
 export const appRoutes: Routes = [
@@ -21,6 +22,7 @@ export const appRoutes: Routes = [
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             { path: 'dashboard', component: Dashboard },
+            { path: 'storefront-media', component: StorefrontMedia, canActivate: [adminGuard] },
             { path: 'users', component: Users, canActivate: [adminGuard] },
             { path: 'categories', component: Categories, canActivate: [adminGuard] },
             { path: 'products', component: Products, canActivate: [adminGuard] },

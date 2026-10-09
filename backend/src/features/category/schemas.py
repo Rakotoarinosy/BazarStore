@@ -11,6 +11,7 @@ class CategoryCreateIn(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     slug: str | None = Field(default=None, max_length=140)
     description: str = Field(default="", max_length=2000)
+    image_key: str | None = Field(default=None, max_length=512)
     is_active: bool = True
 
 
@@ -20,6 +21,7 @@ class CategoryUpdateIn(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=120)
     slug: str | None = Field(default=None, max_length=140)
     description: str | None = Field(default=None, max_length=2000)
+    image_key: str | None = Field(default=None, max_length=512)
     is_active: bool | None = None
 
 
@@ -30,6 +32,8 @@ class CategoryOut(BaseModel):
     name: str
     slug: str
     description: str
+    image_key: str | None
+    image_url: str | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

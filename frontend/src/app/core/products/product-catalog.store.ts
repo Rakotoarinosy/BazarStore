@@ -25,6 +25,8 @@ export interface CatalogCategory {
     name: string;
     slug: string;
     description: string;
+    image_key: string | null;
+    image_url: string | null;
 }
 
 interface CatalogState {

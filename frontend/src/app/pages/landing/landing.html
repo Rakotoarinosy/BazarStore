@@ -75,8 +75,8 @@
             <div class="hero-visual">
                 <div class="hero-orbit"></div>
                 <span class="hero-sticker"><i class="pi pi-sparkles"></i> Coups de cœur<br />du moment</span>
-                <img class="hero-product hero-product-main" [src]="catalog.products()[0]?.image_url || '/demo/images/product/gaming-set.jpg'" [alt]="catalog.products()[0]?.name || 'Sélection BazarStore'" />
-                <img class="hero-product hero-product-small" [src]="catalog.products()[1]?.image_url || '/demo/images/product/green-earbuds.jpg'" [alt]="catalog.products()[1]?.name || 'Sélection BazarStore'" />
+                <img class="hero-product hero-product-main" [src]="heroMainImage() || catalog.products()[0]?.image_url || '/demo/images/product/gaming-set.jpg'" [alt]="catalog.products()[0]?.name || 'Sélection BazarStore'" />
+                <img class="hero-product hero-product-small" [src]="heroSecondaryImage() || catalog.products()[1]?.image_url || '/demo/images/product/green-earbuds.jpg'" [alt]="catalog.products()[1]?.name || 'Sélection BazarStore'" />
                 <div class="hero-note"><span class="note-icon"><i class="pi pi-heart-fill"></i></span><span><strong>Votre prochain favori</strong><small>est peut-être juste ici</small></span></div>
                 <span class="hero-spark spark-one">✳</span>
                 <span class="hero-spark spark-two">✳</span>
@@ -100,7 +100,7 @@
                     <button class="category-card" [class.category-fashion]="index % 3 === 0" [class.category-tech]="index % 3 === 1" [class.category-accessories]="index % 3 === 2" type="button" (click)="selectCategory(category.id)">
                         <span class="category-icon"><i class="pi pi-tag"></i></span>
                         <span class="category-name">{{ category.name }}</span><span class="category-link">Explorer <i class="pi pi-arrow-up-right"></i></span>
-                        @if (categoryProduct(category.id); as featured) { <img [src]="featured.image_url" [alt]="featured.name" loading="lazy" /> }
+                        @if (category.image_url) { <img [src]="category.image_url" [alt]="category.name" loading="lazy" /> }
                     </button>
                 } @empty {
                     @if (catalog.loading()) { <p>Chargement des catégories…</p> }

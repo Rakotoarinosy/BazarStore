@@ -11,6 +11,8 @@ export interface ProductCategory {
     name: string;
     slug: string;
     description: string;
+    image_key: string | null;
+    image_url: string | null;
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -20,6 +22,7 @@ export interface CreateProductCategory {
     name: string;
     slug?: string;
     description: string;
+    image_key?: string | null;
     is_active: boolean;
 }
 

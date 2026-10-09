@@ -1,0 +1,60 @@
+<p-toast />
+
+<div class="grid gap-5">
+    <section class="card">
+        <div class="mb-5">
+            <h1 class="m-0 text-2xl font-semibold">Images de la boutique</h1>
+            <p class="text-muted-color">Choisis les visuels affichés sur la page d’accueil. Les images sont stockées dans MinIO.</p>
+        </div>
+
+        <h2 class="text-xl font-semibold">Bannière d’accueil</h2>
+        <p class="text-muted-color">Ces deux images remplacent celles générées automatiquement depuis le catalogue.</p>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="media-picker">
+                <h3>Image principale</h3>
+                @if (mainPreview || settings()?.hero_main_image_url) {
+                    <img class="media-preview" [src]="mainPreview || settings()?.hero_main_image_url" alt="Aperçu de l’image principale" />
+                } @else { <div class="media-empty"><i class="pi pi-images"></i><span><strong>Visuel du catalogue actuellement utilisé</strong><small>Ajoute une image pour le remplacer.</small></span></div> }
+                <label class="media-file-button"><i class="pi pi-upload"></i><span>{{ mainPreview ? 'Changer le fichier choisi' : 'Parcourir les images' }}</span><input type="file" accept="image/jpeg,image/png,image/gif,image/webp" (change)="selectHero($event, 'main')" /></label>
+                <small class="media-help">JPEG, PNG, GIF ou WebP · 5 Mo maximum</small>
+            </div>
+            <div class="media-picker">
+                <h3>Image secondaire</h3>
+                @if (secondaryPreview || settings()?.hero_secondary_image_url) {
+                    <img class="media-preview media-preview-round" [src]="secondaryPreview || settings()?.hero_secondary_image_url" alt="Aperçu de l’image secondaire" />
+                } @else { <div class="media-empty"><i class="pi pi-images"></i><span><strong>Visuel du catalogue actuellement utilisé</strong><small>Ajoute une image pour le remplacer.</small></span></div> }
+                <label class="media-file-button"><i class="pi pi-upload"></i><span>{{ secondaryPreview ? 'Changer le fichier choisi' : 'Parcourir les images' }}</span><input type="file" accept="image/jpeg,image/png,image/gif,image/webp" (change)="selectHero($event, 'secondary')" /></label>
+                <small class="media-help">JPEG, PNG, GIF ou WebP · 5 Mo maximum</small>
+            </div>
+        </div>
+        <p-button class="mt-4" label="Enregistrer les images d’accueil" icon="pi pi-check" [disabled]="saving() || (!mainPreview && !secondaryPreview)" (onClick)="saveHero()" />
+    </section>
+
+    <section class="card">
+        <h2 class="mt-0 text-xl font-semibold">Images des catégories</h2>
+        <p class="text-muted-color">Chaque ligne a son propre bouton : l’image choisie est enregistrée uniquement pour cette catégorie.</p>
+        @if (categoryLoadError()) {
+            <div class="category-load-error" role="alert">
+                <i class="pi pi-exclamation-triangle"></i>
+                <div><strong>La liste des catégories n’a pas pu être chargée.</strong><span>Vérifie que le backend et PostgreSQL fonctionnent, puis applique les migrations avec <code>cd backend && .venv/bin/alembic upgrade head</code>.</span></div>
+            </div>
+        } @else if (categories().length) {
+            <div class="category-media-list">
+                @for (category of categories(); track category.id) {
+                    <article class="category-media-row">
+                        @if (imageUrl(category)) {
+                            <img class="category-thumbnail" [src]="imageUrl(category)" [alt]="'Image de ' + category.name" />
+                        } @else {
+                            <div class="category-thumbnail category-thumbnail-empty"><i class="pi pi-image"></i></div>
+                        }
+                        <div class="category-info"><strong>{{ category.name }}</strong><small>{{ category.description || 'Aucune description' }}</small></div>
+                        <label class="media-file-button category-file-button" [for]="'category-image-' + category.id"><i class="pi pi-upload"></i><span>{{ category.image_url ? 'Changer l’image' : 'Choisir une image' }}</span></label>
+                        <input class="category-file-input" [id]="'category-image-' + category.id" type="file" accept="image/jpeg,image/png,image/gif,image/webp" [disabled]="saving()" (change)="selectCategoryImage($event, category)" />
+                    </article>
+                }
+            </div>
+        } @else {
+            <div class="category-empty-state"><i class="pi pi-tags"></i><span>Aucune catégorie n’a encore été créée.</span><a routerLink="/backoffice/categories">Créer une catégorie</a></div>
+        }
+    </section>
+</div>
