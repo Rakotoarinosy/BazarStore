@@ -1,60 +1,78 @@
-<div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0">
-                <div class="flex justify-between mb-4">
-                    <div>
-                        <span class="block text-muted-color font-medium mb-4">Orders</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">152</div>
-                    </div>
-                    <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-                        <i class="pi pi-shopping-cart text-blue-500 text-xl!"></i>
-                    </div>
+@if (stats(); as stats) {
+    <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+        <a class="card mb-0 block dashboard-stat-link" routerLink="/backoffice/orders">
+            <div class="flex justify-between mb-4">
+                <div>
+                    <span class="block text-muted-color font-medium mb-4">Commandes</span>
+                    <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ stats.orders.total }}</div>
                 </div>
-                <span class="text-primary font-medium">24 new </span>
-                <span class="text-muted-color">since last visit</span>
+                <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+                    <i class="pi pi-shopping-cart text-blue-500 text-xl!"></i>
+                </div>
             </div>
+            <span class="text-primary font-medium">{{ stats.orders.today }} aujourd’hui</span>
+            <span class="text-muted-color"> · {{ stats.orders.open }} à traiter</span>
+        </a>
+    </div>
+    <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+        <div class="card mb-0">
+            <div class="flex justify-between mb-4">
+                <div>
+                    <span class="block text-muted-color font-medium mb-4">Encaissé</span>
+                    <div class="text-surface-900 dark:text-surface-0 font-medium text-xl" [title]="formatAriary(stats.revenue.total)">{{ formatCompactAriary(stats.revenue.total) }}</div>
+                </div>
+                <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+                    <i class="pi pi-wallet text-orange-500 text-xl!"></i>
+                </div>
+            </div>
+            <span class="font-medium" [class.text-primary]="(revenueTrend() ?? 0) >= 0" [class.text-red-500]="(revenueTrend() ?? 0) < 0">{{ formatCompactAriary(stats.revenue.this_month) }}</span>
+            <span class="text-muted-color">
+                ce mois
+                @if (revenueTrend() !== null) {
+                    ({{ revenueTrend()! >= 0 ? '+' : '' }}{{ revenueTrend() }} % vs mois dernier)
+                }
+            </span>
         </div>
+    </div>
+    <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+        <a class="card mb-0 block dashboard-stat-link" routerLink="/backoffice/users">
+            <div class="flex justify-between mb-4">
+                <div>
+                    <span class="block text-muted-color font-medium mb-4">Clients</span>
+                    <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ stats.customers.total }}</div>
+                </div>
+                <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+                    <i class="pi pi-users text-cyan-500 text-xl!"></i>
+                </div>
+            </div>
+            <span class="text-primary font-medium">{{ stats.customers.new_this_month }} nouveau(x)</span>
+            <span class="text-muted-color"> ce mois</span>
+        </a>
+    </div>
+    <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+        <a class="card mb-0 block dashboard-stat-link" routerLink="/backoffice/products">
+            <div class="flex justify-between mb-4">
+                <div>
+                    <span class="block text-muted-color font-medium mb-4">Produits actifs</span>
+                    <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ stats.products.active }}</div>
+                </div>
+                <div class="flex items-center justify-center bg-purple-100 dark:bg-purple-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+                    <i class="pi pi-box text-purple-500 text-xl!"></i>
+                </div>
+            </div>
+            @if (stats.products.out_of_stock || stats.products.low_stock) {
+                <span class="text-red-500 font-medium">{{ stats.products.out_of_stock }} épuisé(s)</span>
+                <span class="text-muted-color"> · {{ stats.products.low_stock }} stock faible</span>
+            } @else {
+                <span class="text-primary font-medium">Stock OK</span>
+                <span class="text-muted-color"> sur tout le catalogue</span>
+            }
+        </a>
+    </div>
+} @else {
+    @for (placeholder of [1, 2, 3, 4]; track placeholder) {
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0">
-                <div class="flex justify-between mb-4">
-                    <div>
-                        <span class="block text-muted-color font-medium mb-4">Revenue</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">$2.100</div>
-                    </div>
-                    <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-                        <i class="pi pi-dollar text-orange-500 text-xl!"></i>
-                    </div>
-                </div>
-                <span class="text-primary font-medium">%52+ </span>
-                <span class="text-muted-color">since last week</span>
-            </div>
+            <div class="card mb-0 h-full flex items-center text-muted-color"><i class="pi pi-spin pi-spinner mr-2"></i> Chargement…</div>
         </div>
-        <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0">
-                <div class="flex justify-between mb-4">
-                    <div>
-                        <span class="block text-muted-color font-medium mb-4">Customers</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">28441</div>
-                    </div>
-                    <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-                        <i class="pi pi-users text-cyan-500 text-xl!"></i>
-                    </div>
-                </div>
-                <span class="text-primary font-medium">520 </span>
-                <span class="text-muted-color">newly registered</span>
-            </div>
-        </div>
-        <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0">
-                <div class="flex justify-between mb-4">
-                    <div>
-                        <span class="block text-muted-color font-medium mb-4">Comments</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">152 Unread</div>
-                    </div>
-                    <div class="flex items-center justify-center bg-purple-100 dark:bg-purple-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-                        <i class="pi pi-comment text-purple-500 text-xl!"></i>
-                    </div>
-                </div>
-                <span class="text-primary font-medium">85 </span>
-                <span class="text-muted-color">responded</span>
-            </div>
-        </div>
+    }
+}

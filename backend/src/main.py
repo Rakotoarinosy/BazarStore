@@ -13,6 +13,7 @@ from src.features.auth.router import router as auth_router
 from src.features.category.router import router as category_router
 from src.features.order.router import router as order_router
 from src.features.product.router import router as product_router
+from src.features.stats.router import router as stats_router
 from src.features.storefront.router import router as storefront_router
 from src.features.user.router import router as user_router
 from src.infrastructure.config import configure_logging, get_settings
@@ -28,6 +29,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     product_router,
     order_router,
     storefront_router,
+    stats_router,
 ]
 
 

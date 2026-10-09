@@ -28,6 +28,7 @@ async def test_customers_cannot_manage_orders(client: httpx.AsyncClient) -> None
     assert listing.status_code == 403
     assert update.status_code == 403
     assert stream.status_code == 403
+    assert (await client.get("/api/v1/stats/dashboard", headers=headers)).status_code == 403
 
 
 async def test_order_management_requires_authentication(client: httpx.AsyncClient) -> None:

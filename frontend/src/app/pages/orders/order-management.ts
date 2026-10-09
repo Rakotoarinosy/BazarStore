@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -57,6 +58,7 @@ export class OrderManagement implements OnInit {
     private readonly ordersApi = inject(OrderAdminStore);
     private readonly confirmation = inject(ConfirmationService);
     private readonly messages = inject(MessageService);
+    private readonly route = inject(ActivatedRoute);
 
     @ViewChild('ordersTable') ordersTable?: Table;
 
@@ -98,7 +100,15 @@ export class OrderManagement implements OnInit {
     }
 
     refresh(): void {
-        this.ordersApi.list().subscribe({ error: (error: unknown) => this.showError(error) });
+        this.ordersApi.list().subscribe({
+            next: () => {
+                // Lien direct depuis le dashboard : /backoffice/orders?order=<id>
+                const orderId = this.route.snapshot.queryParamMap.get('order');
+                const order = orderId ? this.orders().find((candidate) => candidate.id === orderId) : undefined;
+                if (order && !this.dialogVisible) this.openOrder(order);
+            },
+            error: (error: unknown) => this.showError(error)
+        });
     }
 
     onSearch(event: Event): void {

@@ -1,23 +1,29 @@
-import { Component, inject, signal } from '@angular/core';
-import { RippleModule } from 'primeng/ripple';
-import { TableModule } from 'primeng/table';
-import { ButtonModule } from 'primeng/button';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Product, ProductService } from '@/app/pages/service/product.service';
+import { RouterModule } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { DashboardStore } from '@/app/core/dashboard/dashboard.store';
+import { OrderStatus } from '@/app/core/orders/order-admin.store';
+import { ORDER_STATUS, formatAriary, formatRelative } from '../dashboard-format';
 
 @Component({
     standalone: true,
     selector: 'app-recent-sales-widget',
-    imports: [CommonModule, TableModule, ButtonModule, RippleModule],
-    templateUrl: './recentsaleswidget.html',
-    providers: [ProductService]
+    imports: [CommonModule, RouterModule, TableModule, ButtonModule, TagModule],
+    templateUrl: './recentsaleswidget.html'
 })
 export class RecentSalesWidget {
-    products = signal<Product[]>([]);
+    readonly stats = inject(DashboardStore).stats;
 
-    productService = inject(ProductService);
-
-    ngOnInit() {
-        this.productService.getProductsSmall().then((data) => (this.products.set(data)));
+    statusLabel(status: OrderStatus): string {
+        return ORDER_STATUS[status].label;
     }
+
+    statusSeverity(status: OrderStatus) {
+        return ORDER_STATUS[status].severity;
+    }
+    readonly formatAriary = formatAriary;
+    readonly formatRelative = formatRelative;
 }
