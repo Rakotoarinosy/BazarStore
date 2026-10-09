@@ -68,10 +68,16 @@ class Settings(BaseSettings):
     # ─── Paiement en ligne : interrupteur général (carte et MVola) ───
     payments_enabled: bool = False
 
-    # ─── Paiement par carte (API Stripe externe « E-commerce & Monitoring ») ───
-    card_payment_api_url: str | None = "https://ecommerce-api.rakotoarinosy.com"
-    # Ariary pour 1 unité de la devise Stripe de l'API (ex. 1 EUR ≈ 5000 Ar).
-    card_payment_ar_per_unit: float = 5000
+    # ─── Paiement par carte : Stripe Checkout ───
+    stripe_secret_key: str | None = None
+    # Secret du webhook (whsec_…) : `stripe listen` en local, endpoint du dashboard en production.
+    stripe_webhook_secret: str | None = None
+    # MGA = ariary, accepté tel quel par Stripe (devise sans centimes) : aucune conversion.
+    stripe_currency: str = "mga"
+    # Utilisé seulement si STRIPE_CURRENCY n'est pas « mga » (ex. eur : 1 EUR ≈ 5000 Ar).
+    stripe_ar_per_unit: float = 5000
+    # Adresse du site Angular : Stripe y renvoie le client après le paiement.
+    public_frontend_url: str = "http://localhost:4300"
 
     # ─── Paiement MVola (Merchant Pay) ───
     # Sandbox : https://devapi.mvola.mg — production : https://api.mvola.mg

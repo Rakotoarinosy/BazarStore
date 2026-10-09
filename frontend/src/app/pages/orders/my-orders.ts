@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 
 interface OrderItem {
     id: string;
@@ -17,16 +17,13 @@ interface CustomerOrder {
     status: string;
     total_amount: number;
     created_at: string;
-    payment_provider: 'card' | 'mvola' | null;
+    payment_provider: 'stripe' | 'mvola' | null;
     payment_status: 'pending' | 'completed' | 'failed' | null;
     payment_reference: string | null;
     paid_at: string | null;
     invoice_number: string | null;
     items: OrderItem[];
 }
-
-// Paiement en ligne désactivé pour l'instant (à réactiver avec PAYMENTS_ENABLED=true côté API).
-const PAYMENTS_ENABLED = false;
 
 interface CardCheckout {
     checkout_url: string;
@@ -43,6 +40,7 @@ interface CardCheckout {
 export class MyOrders {
     private readonly http = inject(HttpClient);
     private readonly router = inject(Router);
+    private readonly route = inject(ActivatedRoute);
 
     readonly orders = signal<CustomerOrder[]>([]);
     readonly selectedOrder = signal<CustomerOrder | null>(null);
@@ -50,7 +48,8 @@ export class MyOrders {
     readonly errorMessage = signal('');
     readonly paymentMessage = signal('');
     readonly paymentError = signal(false);
-    readonly paymentsEnabled = PAYMENTS_ENABLED;
+    // Activé côté API (PAYMENTS_ENABLED + clé Stripe) : GET /orders/payments/config.
+    readonly paymentsEnabled = signal(false);
     readonly paymentBusy = signal(false);
     readonly invoiceDownloading = signal<string | null>(null);
     readonly invoiceError = signal('');
@@ -60,11 +59,7 @@ export class MyOrders {
             next: (orders) => {
                 this.orders.set(orders);
                 this.loading.set(false);
-                // Retour de Stripe : on vérifie les paiements par carte encore en attente.
-                if (!PAYMENTS_ENABLED) return;
-                for (const order of orders) {
-                    if (this.isCardPending(order)) this.refreshCardPayment(order.id);
-                }
+                this.loadPaymentConfig();
             },
             error: (error: unknown) => {
                 this.loading.set(false);
@@ -98,7 +93,7 @@ export class MyOrders {
     }
 
     isCardPending(order: CustomerOrder): boolean {
-        return order.status === 'pending' && order.payment_provider === 'card' && order.payment_status === 'pending';
+        return order.status === 'pending' && order.payment_provider === 'stripe' && order.payment_status === 'pending';
     }
 
     openDetails(order: CustomerOrder): void {
@@ -118,7 +113,7 @@ export class MyOrders {
 
         this.paymentBusy.set(true);
         this.setPaymentMessage('Redirection vers la page de paiement sécurisée Stripe…');
-        this.http.post<CardCheckout>(`/api/v1/orders/${order.id}/payments/card`, {}).subscribe({
+        this.http.post<CardCheckout>(`/api/v1/orders/${order.id}/payments/stripe`, {}).subscribe({
             next: (checkout) => {
                 this.applyOrder(checkout.order);
                 window.location.assign(checkout.checkout_url);
@@ -163,7 +158,7 @@ export class MyOrders {
 
     private refreshCardPayment(orderId: string, showResult = false): void {
         this.paymentBusy.set(true);
-        this.http.get<CustomerOrder>(`/api/v1/orders/${orderId}/payments/card`).subscribe({
+        this.http.get<CustomerOrder>(`/api/v1/orders/${orderId}/payments/stripe`).subscribe({
             next: (updated) => {
                 this.paymentBusy.set(false);
                 this.applyOrder(updated);
@@ -176,6 +171,39 @@ export class MyOrders {
                 if (showResult) this.setPaymentMessage(this.paymentErrorMessage(error), true);
             }
         });
+    }
+
+    private loadPaymentConfig(): void {
+        this.http.get<{ card_enabled: boolean }>('/api/v1/orders/payments/config').subscribe({
+            next: (config) => {
+                this.paymentsEnabled.set(config.card_enabled);
+                if (!config.card_enabled) return;
+                this.handleStripeReturn();
+                // Paiements lancés mais pas encore confirmés (client revenu sans passer par Stripe).
+                for (const order of this.orders()) {
+                    if (this.isCardPending(order)) this.refreshCardPayment(order.id);
+                }
+            },
+            error: () => this.paymentsEnabled.set(false)
+        });
+    }
+
+    /** Retour de Stripe : /my-orders?order=<id>&payment=success|cancelled */
+    private handleStripeReturn(): void {
+        const params = this.route.snapshot.queryParamMap;
+        const order = this.orders().find((candidate) => candidate.id === params.get('order'));
+        const result = params.get('payment');
+        if (!order || !result) return;
+
+        this.openDetails(order);
+        if (result === 'success') {
+            this.setPaymentMessage('Paiement en cours de vérification…');
+            this.refreshCardPayment(order.id, true);
+        } else {
+            this.setPaymentMessage('Paiement annulé. Vous pouvez réessayer quand vous voulez.', true);
+        }
+        // Nettoie l'URL pour qu'un rechargement ne rejoue pas le message.
+        void this.router.navigate([], { queryParams: {}, replaceUrl: true });
     }
 
     private applyOrder(updated: CustomerOrder): void {

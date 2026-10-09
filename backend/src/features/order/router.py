@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
@@ -14,11 +14,12 @@ from sqlalchemy.orm import Session, selectinload
 from src.domain.errors import DomainError
 from src.domain.user import Role, User
 from src.features.order.schemas import (
-    CardCheckoutOut,
     MvolaCallbackIn,
     MvolaPaymentIn,
     OrderCreateIn,
     OrderOut,
+    PaymentConfigOut,
+    StripeCheckoutOut,
 )
 from src.infrastructure.config import Settings, get_settings
 from src.infrastructure.documents.invoice_pdf import (
@@ -28,11 +29,12 @@ from src.infrastructure.documents.invoice_pdf import (
     InvoiceSeller,
     render_invoice_pdf,
 )
-from src.infrastructure.external.card_payment_gateway import (
-    CardPaymentGateway,
-    get_card_payment_gateway,
-)
 from src.infrastructure.external.mvola_client import MvolaClient, get_mvola_client
+from src.infrastructure.external.stripe_payments import (
+    CheckoutLine,
+    StripePayments,
+    get_stripe_payments,
+)
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.models import (
     OrderItemModel,
@@ -296,34 +298,73 @@ def mvola_callback(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def _refresh_card_status(order: OrderModel, gateway: CardPaymentGateway) -> None:
-    """Confirme la commande si l'API Stripe externe a enregistré son paiement (sans commit)."""
-    if order.payment_provider != "card" or order.payment_status != "pending":
+# ─── Paiement par carte : Stripe Checkout ───────────────────────────
+
+
+def _mark_stripe_paid(order: OrderModel) -> None:
+    order.payment_status = "completed"
+    order.paid_at = datetime.now(UTC)
+    order.status = "confirmed"
+
+
+def _refresh_stripe_status(order: OrderModel, payments: StripePayments) -> None:
+    """Relit la session Stripe de la commande et applique son état (sans commit)."""
+    if (
+        order.payment_provider != "stripe"
+        or order.payment_status != "pending"
+        or not order.payment_correlation_id
+    ):
         return
-    if gateway.is_paid(reference=order.reference, amount_ar=order.total_amount):
-        order.payment_status = "completed"
-        order.paid_at = datetime.now(UTC)
-        order.status = "confirmed"
+    state = payments.get_session_state(order.payment_correlation_id)
+    if state.order_id != order.id:
+        logger.warning("Stripe session does not belong to order %s", order.reference)
+        return
+    if state.paid:
+        _mark_stripe_paid(order)
+    elif state.expired:
+        order.payment_status = "failed"
+
+
+@router.get("/payments/config", response_model=PaymentConfigOut)
+def get_payment_config(settings: Settings = Depends(get_settings)) -> PaymentConfigOut:
+    """Indique au frontend si le paiement par carte est proposé."""
+    return PaymentConfigOut(
+        card_enabled=settings.payments_enabled and bool(settings.stripe_secret_key)
+    )
 
 
 @router.post(
-    "/{order_id}/payments/card", response_model=CardCheckoutOut, dependencies=PAYMENTS_GUARD
+    "/{order_id}/payments/stripe", response_model=StripeCheckoutOut, dependencies=PAYMENTS_GUARD
 )
-def start_card_payment(
+def start_stripe_payment(
     order_id: str,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    gateway: CardPaymentGateway = Depends(get_card_payment_gateway),
-) -> CardCheckoutOut:
+    payments: StripePayments = Depends(get_stripe_payments),
+    settings: Settings = Depends(get_settings),
+) -> StripeCheckoutOut:
     """Crée une session Stripe Checkout ; le frontend redirige le client vers `checkout_url`."""
     order = _get_user_order(db, order_id, user)
-    _refresh_card_status(order, gateway)
+    _refresh_stripe_status(order, payments)
     if order.status != "pending" or order.payment_status == "completed":
         db.commit()
         raise OrderNotPayableConflictError()
 
-    checkout = gateway.create_checkout(reference=order.reference, amount_ar=order.total_amount)
-    order.payment_provider = "card"
+    return_url = f"{settings.public_frontend_url.rstrip('/')}/my-orders?order={order.id}"
+    checkout = payments.create_checkout(
+        order_id=order.id,
+        reference=order.reference,
+        customer_email=order.customer_email,
+        lines=[
+            CheckoutLine(
+                name=item.product_name, unit_price_ar=item.unit_price, quantity=item.quantity
+            )
+            for item in order.items
+        ],
+        success_url=f"{return_url}&payment=success",
+        cancel_url=f"{return_url}&payment=cancelled",
+    )
+    order.payment_provider = "stripe"
     order.payment_status = "pending"
     order.payment_phone = None
     order.payment_correlation_id = checkout.session_id
@@ -331,28 +372,51 @@ def start_card_payment(
     order.payment_requested_at = datetime.now(UTC)
     db.commit()
     db.refresh(order)
-    return CardCheckoutOut(checkout_url=checkout.checkout_url, order=OrderOut.model_validate(order))
+    return StripeCheckoutOut(checkout_url=checkout.url, order=OrderOut.model_validate(order))
 
 
-@router.get("/{order_id}/payments/card", response_model=OrderOut, dependencies=PAYMENTS_GUARD)
-def get_card_payment_status(
+@router.get("/{order_id}/payments/stripe", response_model=OrderOut, dependencies=PAYMENTS_GUARD)
+def get_stripe_payment_status(
     order_id: str,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-    gateway: CardPaymentGateway = Depends(get_card_payment_gateway),
+    payments: StripePayments = Depends(get_stripe_payments),
 ) -> OrderOut:
     """Statut du paiement par carte (interrogé au retour de Stripe)."""
     order = _get_user_order(db, order_id, user)
-    _refresh_card_status(order, gateway)
+    _refresh_stripe_status(order, payments)
     db.commit()
     db.refresh(order)
     return OrderOut.model_validate(order)
 
 
+@router.post(
+    "/payments/stripe/webhook",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=PAYMENTS_GUARD,
+)
+async def stripe_webhook(
+    request: Request,
+    db: Session = Depends(get_db),
+    payments: StripePayments = Depends(get_stripe_payments),
+) -> Response:
+    """Notification signée de Stripe (`checkout.session.completed`)."""
+    result = payments.parse_webhook(await request.body(), request.headers.get("stripe-signature"))
+    if result is not None:
+        session_id, state = result
+        order = db.get(OrderModel, state.order_id) if state.order_id else None
+        if order is None or order.payment_correlation_id != session_id:
+            logger.warning("Stripe webhook for an unknown order/session")
+        elif state.paid and order.payment_status != "completed":
+            _mark_stripe_paid(order)
+            db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 # ─── Factures ───────────────────────────────────────────────────────
 
 INVOICE_STAFF_ROLES = {Role.ADMIN, Role.COMMERCIAL, Role.MANAGER}
-PAYMENT_METHOD_LABELS = {"card": "carte bancaire", "mvola": "MVola"}
+PAYMENT_METHOD_LABELS = {"stripe": "carte bancaire", "mvola": "MVola"}
 
 
 def _assign_invoice_number(

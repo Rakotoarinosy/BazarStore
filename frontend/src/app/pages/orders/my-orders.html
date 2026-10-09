@@ -97,9 +97,9 @@
                 }
                 @if (order.payment_status === 'completed') {
                     <p class="order-payment-message order-payment-success" role="status">
-                        <i class="pi pi-check-circle"></i> Commande payée{{ order.payment_provider === 'card' ? ' par carte bancaire' : '' }}
+                        <i class="pi pi-check-circle"></i> Commande payée{{ order.payment_provider === 'stripe' ? ' par carte bancaire' : '' }}
                     </p>
-                } @else if (paymentsEnabled && order.status === 'pending') {
+                } @else if (paymentsEnabled() && order.status === 'pending') {
                     <div class="order-payment-actions">
                         <span class="order-payment-label">Paiement sécurisé par carte bancaire (Stripe)</span>
                         <div class="order-payment-row">
