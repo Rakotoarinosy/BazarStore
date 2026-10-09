@@ -10,7 +10,9 @@ app-landing {
     --brand-cream: #fbf8f2;
     --brand-muted: #778197;
     min-height: 100vh;
-    overflow: hidden;
+    // `hidden` creates a scroll container and prevents the sticky storefront
+    // header from sticking to the viewport while the page is scrolled.
+    overflow: clip;
     background: #fff;
 }
 

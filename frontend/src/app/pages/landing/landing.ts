@@ -2,20 +2,24 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { EMPTY, catchError, finalize } from 'rxjs';
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogProduct, ProductCatalogStore } from '../../core/products/product-catalog.store';
 
 @Component({
     selector: 'app-landing',
     standalone: true,
-    imports: [RouterModule],
-    templateUrl: './landing.html'
+    imports: [RouterModule, ToastModule],
+    templateUrl: './landing.html',
+    providers: [MessageService]
 })
 export class Landing {
     private readonly http = inject(HttpClient);
     private readonly router = inject(Router);
     readonly catalog = inject(ProductCatalogStore);
     readonly auth = inject(AuthService);
+    private readonly messages = inject(MessageService);
     readonly heroMainImage = signal<string | null>(null);
     readonly heroSecondaryImage = signal<string | null>(null);
 
@@ -124,7 +128,7 @@ export class Landing {
     }
 
     get cartItemCount(): number {
-        return this.cartItems.reduce((total, item) => total + item.quantity, 0);
+        return this.cartItems.length;
     }
 
     formatPrice(price: number | undefined): string {
@@ -170,7 +174,12 @@ export class Landing {
         } else {
             this.cartItems = [...this.cartItems, { product, quantity: 1 }];
         }
-        this.cartOpen = true;
+        this.messages.add({
+            severity: 'success',
+            summary: 'Ajouté au panier',
+            detail: product.name,
+            life: 2200
+        });
     }
 
     changeQuantity(index: number, change: number): void {

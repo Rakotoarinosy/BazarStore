@@ -1,4 +1,5 @@
 <div class="storefront">
+    <p-toast position="top-right" />
     <div class="announcement">
         <span><i class="pi pi-sparkles"></i> Bienvenue chez BazarStore</span>
         <a href="#products">Découvrir la sélection <i class="pi pi-arrow-right"></i></a>
@@ -38,7 +39,7 @@
                     <span class="session-label">{{ user.name }}</span>
                 </span>
             }
-            <button class="icon-action cart-action" type="button" (click)="cartOpen = !cartOpen" [attr.aria-expanded]="cartOpen" aria-label="Ouvrir le panier">
+            <button class="icon-action cart-action" type="button" (click)="cartOpen = !cartOpen" [attr.aria-expanded]="cartOpen" [attr.aria-label]="'Ouvrir le panier, ' + cartItemCount + ' produit(s)'">
                 <i class="pi pi-shopping-bag"></i>
                 @if (cartItems.length) {
                     <span class="cart-count">{{ cartItemCount }}</span>
