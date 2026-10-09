@@ -25,6 +25,9 @@ interface CustomerOrder {
     items: OrderItem[];
 }
 
+// Paiement en ligne désactivé pour l'instant (à réactiver avec PAYMENTS_ENABLED=true côté API).
+const PAYMENTS_ENABLED = false;
+
 interface CardCheckout {
     checkout_url: string;
     order: CustomerOrder;
@@ -47,8 +50,10 @@ export class MyOrders {
     readonly errorMessage = signal('');
     readonly paymentMessage = signal('');
     readonly paymentError = signal(false);
+    readonly paymentsEnabled = PAYMENTS_ENABLED;
     readonly paymentBusy = signal(false);
     readonly invoiceDownloading = signal<string | null>(null);
+    readonly invoiceError = signal('');
 
     constructor() {
         this.http.get<CustomerOrder[]>('/api/v1/orders/mine').subscribe({
@@ -56,6 +61,7 @@ export class MyOrders {
                 this.orders.set(orders);
                 this.loading.set(false);
                 // Retour de Stripe : on vérifie les paiements par carte encore en attente.
+                if (!PAYMENTS_ENABLED) return;
                 for (const order of orders) {
                     if (this.isCardPending(order)) this.refreshCardPayment(order.id);
                 }
@@ -97,6 +103,7 @@ export class MyOrders {
 
     openDetails(order: CustomerOrder): void {
         this.setPaymentMessage('');
+        this.invoiceError.set('');
         this.selectedOrder.set(order);
     }
 
@@ -131,6 +138,7 @@ export class MyOrders {
     downloadInvoice(order: CustomerOrder): void {
         if (this.invoiceDownloading()) return;
         this.invoiceDownloading.set(order.id);
+        this.invoiceError.set('');
         // Requête authentifiée (Bearer) : un simple lien <a href> n'enverrait pas le jeton.
         this.http.get(`/api/v1/orders/${order.id}/invoice`, { observe: 'response', responseType: 'blob' }).subscribe({
             next: (response) => {
@@ -148,7 +156,7 @@ export class MyOrders {
             },
             error: () => {
                 this.invoiceDownloading.set(null);
-                this.setPaymentMessage('La facture n’a pas pu être générée. Veuillez réessayer.', true);
+                this.invoiceError.set('La facture n’a pas pu être générée. Veuillez réessayer.');
             }
         });
     }

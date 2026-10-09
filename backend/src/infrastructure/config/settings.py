@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     invoice_vat_rate: float = 20
     invoice_payment_terms: str = "Paiement à réception de la facture."
 
+    # ─── Paiement en ligne : interrupteur général (carte et MVola) ───
+    payments_enabled: bool = False
+
     # ─── Paiement par carte (API Stripe externe « E-commerce & Monitoring ») ───
     card_payment_api_url: str | None = "https://ecommerce-api.rakotoarinosy.com"
     # Ariary pour 1 unité de la devise Stripe de l'API (ex. 1 EUR ≈ 5000 Ar).

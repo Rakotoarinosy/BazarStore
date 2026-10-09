@@ -76,6 +76,21 @@ class OrderCancelledConflictError(DomainError):
         super().__init__("Une commande annulée ne peut pas être facturée.")
 
 
+class PaymentsUnavailableError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("Le paiement en ligne est désactivé pour le moment.")
+
+
+def require_payments_enabled(settings: Settings = Depends(get_settings)) -> None:
+    """Coupe toutes les routes de paiement (aucun appel à Stripe ni à MVola) si désactivées."""
+    if not settings.payments_enabled:
+        raise PaymentsUnavailableError()
+
+
+# Dépendance de route : résolue avant celles des paramètres (clients Stripe / MVola).
+PAYMENTS_GUARD = [Depends(require_payments_enabled)]
+
+
 class OrderPaymentPendingConflictError(DomainError):
     def __init__(self) -> None:
         super().__init__(
@@ -203,7 +218,7 @@ def _refresh_mvola_status(order: OrderModel, mvola: MvolaClient) -> None:
         order.payment_status = "failed"
 
 
-@router.post("/{order_id}/payments/mvola", response_model=OrderOut)
+@router.post("/{order_id}/payments/mvola", response_model=OrderOut, dependencies=PAYMENTS_GUARD)
 def start_mvola_payment(
     order_id: str,
     payload: MvolaPaymentIn,
@@ -241,7 +256,7 @@ def start_mvola_payment(
     return OrderOut.model_validate(order)
 
 
-@router.get("/{order_id}/payments/mvola", response_model=OrderOut)
+@router.get("/{order_id}/payments/mvola", response_model=OrderOut, dependencies=PAYMENTS_GUARD)
 def get_mvola_payment_status(
     order_id: str,
     db: Session = Depends(get_db),
@@ -256,7 +271,11 @@ def get_mvola_payment_status(
     return OrderOut.model_validate(order)
 
 
-@router.put("/payments/mvola/callback", status_code=status.HTTP_204_NO_CONTENT)
+@router.put(
+    "/payments/mvola/callback",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=PAYMENTS_GUARD,
+)
 def mvola_callback(
     payload: MvolaCallbackIn,
     db: Session = Depends(get_db),
@@ -287,7 +306,9 @@ def _refresh_card_status(order: OrderModel, gateway: CardPaymentGateway) -> None
         order.status = "confirmed"
 
 
-@router.post("/{order_id}/payments/card", response_model=CardCheckoutOut)
+@router.post(
+    "/{order_id}/payments/card", response_model=CardCheckoutOut, dependencies=PAYMENTS_GUARD
+)
 def start_card_payment(
     order_id: str,
     db: Session = Depends(get_db),
@@ -313,7 +334,7 @@ def start_card_payment(
     return CardCheckoutOut(checkout_url=checkout.checkout_url, order=OrderOut.model_validate(order))
 
 
-@router.get("/{order_id}/payments/card", response_model=OrderOut)
+@router.get("/{order_id}/payments/card", response_model=OrderOut, dependencies=PAYMENTS_GUARD)
 def get_card_payment_status(
     order_id: str,
     db: Session = Depends(get_db),
