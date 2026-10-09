@@ -1,0 +1,55 @@
+<main class="orders-page">
+    <header class="orders-header">
+        <a class="orders-brand" routerLink="/" aria-label="BazarStore, accueil">
+            <span class="orders-brand-mark" aria-hidden="true"></span>
+            <span>Bazar<span>Store</span></span>
+        </a>
+        <a class="orders-back-link" routerLink="/">Continuer mes achats <i class="pi pi-arrow-right"></i></a>
+    </header>
+
+    <section class="orders-content" aria-labelledby="orders-title">
+        <span class="orders-eyebrow">VOTRE ESPACE</span>
+        <h1 id="orders-title">Mes commandes</h1>
+        <p class="orders-intro">Retrouvez ici l’historique de vos commandes et le détail de vos achats.</p>
+
+        @if (loading) {
+            <div class="orders-message" role="status"><i class="pi pi-spin pi-spinner"></i> Chargement de vos commandes…</div>
+        } @else if (errorMessage) {
+            <div class="orders-message orders-error" role="alert">{{ errorMessage }}</div>
+        } @else if (orders.length === 0) {
+            <div class="orders-empty">
+                <span class="orders-empty-icon"><i class="pi pi-shopping-bag"></i></span>
+                <h2>Pas encore de commande</h2>
+                <p>Vos commandes apparaîtront ici après leur enregistrement.</p>
+                <a class="orders-shop-button" routerLink="/">Découvrir les produits</a>
+            </div>
+        } @else {
+            <div class="orders-list">
+                @for (order of orders; track order.id) {
+                    <article class="order-card">
+                        <header class="order-card-header">
+                            <div>
+                                <span class="order-reference">{{ order.reference }}</span>
+                                <time>{{ formatDate(order.created_at) }}</time>
+                            </div>
+                            <span class="order-status" [attr.data-status]="order.status">{{ statusLabel(order.status) }}</span>
+                        </header>
+                        <div class="order-items">
+                            @for (item of order.items; track item.id) {
+                                <div class="order-item">
+                                    <img [src]="item.product_image_url || '/demo/images/product/product-placeholder.svg'" [alt]="item.product_name" />
+                                    <div class="order-item-name">
+                                        <strong>{{ item.product_name }}</strong>
+                                        <span>{{ item.quantity }} × {{ formatPrice(item.unit_price) }}</span>
+                                    </div>
+                                    <strong class="order-item-total">{{ formatPrice(item.line_total) }}</strong>
+                                </div>
+                            }
+                        </div>
+                        <footer class="order-card-total"><span>Total de la commande</span><strong>{{ formatPrice(order.total_amount) }}</strong></footer>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</main>

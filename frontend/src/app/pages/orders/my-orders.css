@@ -1,0 +1,272 @@
+app-my-orders {
+    display: block;
+    min-height: 100vh;
+    color: #202b43;
+    background: #f8f9fb;
+}
+
+.orders-header {
+    position: sticky;
+    z-index: 10;
+    top: 0;
+    display: flex;
+    min-height: 78px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 max(5vw, calc((100vw - 1120px) / 2));
+    border-bottom: 1px solid #eff0f2;
+    background: rgb(255 255 255 / 96%);
+    backdrop-filter: blur(14px);
+}
+
+.orders-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #172744;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.06em;
+    text-decoration: none;
+}
+
+.orders-brand > span:last-child > span {
+    color: #315e91;
+}
+
+.orders-brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #fff;
+    background-image: url('/assets/images/Image%20ChatGPT%208%20oct.%202026,%2021_15_59.jpg');
+    background-position: center;
+    background-size: 200%;
+    box-shadow: 0 2px 10px rgb(23 39 68 / 10%);
+}
+
+.orders-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #172744;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.orders-content {
+    width: min(100% - 2.5rem, 960px);
+    margin: 0 auto;
+    padding: 4.5rem 0 6rem;
+}
+
+.orders-eyebrow {
+    color: #e8893d;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+}
+
+.orders-content h1 {
+    margin: 0.65rem 0 0;
+    color: #172744;
+    font-size: clamp(2rem, 4vw, 2.7rem);
+    letter-spacing: -0.055em;
+}
+
+.orders-intro {
+    margin: 0.7rem 0 2rem;
+    color: #778197;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.orders-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.order-card {
+    overflow: hidden;
+    border: 1px solid #e9edf2;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 8px 28px rgb(23 39 68 / 4%);
+}
+
+.order-card-header,
+.order-card-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+}
+
+.order-card-header {
+    border-bottom: 1px solid #eff0f2;
+
+    > div {
+        display: grid;
+        gap: 0.3rem;
+    }
+
+    time {
+        color: #778197;
+        font-size: 0.78rem;
+    }
+}
+
+.order-reference {
+    color: #172744;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.order-status {
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    color: #8a5a17;
+    background: #fff4df;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.order-status[data-status='completed'] {
+    color: #16734b;
+    background: #e6f7ef;
+}
+
+.order-status[data-status='cancelled'] {
+    color: #a33636;
+    background: #fff0f0;
+}
+
+.order-items {
+    padding: 0 1.25rem;
+}
+
+.order-item {
+    display: flex;
+    min-height: 82px;
+    align-items: center;
+    gap: 0.9rem;
+    border-bottom: 1px solid #f0f1f3;
+
+    img {
+        width: 54px;
+        height: 54px;
+        border-radius: 7px;
+        background: #f5f6f7;
+        object-fit: contain;
+    }
+}
+
+.order-item-name {
+    display: grid;
+    flex: 1;
+    gap: 0.3rem;
+
+    strong,
+    .order-item-total {
+        color: #172744;
+        font-size: 0.82rem;
+    }
+
+    span {
+        color: #778197;
+        font-size: 0.75rem;
+    }
+}
+
+.order-item-total {
+    color: #172744;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.order-card-total {
+    color: #778197;
+    font-size: 0.82rem;
+
+    strong {
+        color: #172744;
+        font-size: 0.95rem;
+    }
+}
+
+.orders-empty,
+.orders-message {
+    padding: 3rem 1.5rem;
+    border: 1px solid #e9edf2;
+    border-radius: 12px;
+    background: #fff;
+    text-align: center;
+}
+
+.orders-empty-icon {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    place-items: center;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    color: #315e91;
+    background: #edf3f9;
+    font-size: 1.25rem;
+}
+
+.orders-empty h2 {
+    margin: 0;
+    color: #172744;
+    font-size: 1.15rem;
+}
+
+.orders-empty p,
+.orders-message {
+    color: #778197;
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.orders-shop-button {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.5rem;
+    padding: 0 1rem;
+    border-radius: 6px;
+    color: #fff;
+    background: #172744;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.orders-error {
+    color: #a33636;
+}
+
+@media (max-width: 600px) {
+    .orders-header {
+        min-height: 66px;
+        padding: 0 1rem;
+    }
+
+    .orders-content {
+        width: min(100% - 1.5rem, 960px);
+        padding-top: 2.5rem;
+    }
+
+    .order-card-header,
+    .order-card-total {
+        padding-right: 0.85rem;
+        padding-left: 0.85rem;
+    }
+
+    .order-items {
+        padding: 0 0.85rem;
+    }
+}

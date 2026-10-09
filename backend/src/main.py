@@ -11,6 +11,7 @@ from starlette.responses import HTMLResponse
 from src.bootstrap import ensure_bootstrap_admin
 from src.features.auth.router import router as auth_router
 from src.features.category.router import router as category_router
+from src.features.order.router import router as order_router
 from src.features.product.router import router as product_router
 from src.features.storefront.router import router as storefront_router
 from src.features.user.router import router as user_router
@@ -24,6 +25,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     user_router,
     category_router,
     product_router,
+    order_router,
     storefront_router,
 ]
 

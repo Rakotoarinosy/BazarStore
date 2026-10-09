@@ -12,6 +12,7 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -57,6 +58,7 @@ class UserModel(Base):
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    orders: Mapped[list["OrderModel"]] = relationship(back_populates="user")
 
 
 class RefreshTokenModel(Base):
@@ -117,6 +119,54 @@ class ProductModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     category: Mapped[ProductCategoryModel] = relationship(back_populates="products")
+
+
+# ─── commandes ─────────────────────────────────────────────────────
+
+
+class OrderModel(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    reference: Mapped[str] = mapped_column(String(24), unique=True, index=True, nullable=False)
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    customer_email: Mapped[str] = mapped_column(String(320), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="pending", server_default="pending", nullable=False, index=True)
+    total_amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    user: Mapped[UserModel | None] = relationship(back_populates="orders")
+    items: Mapped[list["OrderItemModel"]] = relationship(
+        back_populates="order", cascade="all, delete-orphan", order_by="OrderItemModel.id"
+    )
+
+    __table_args__ = (CheckConstraint("total_amount >= 0", name="ck_orders_total_nonnegative"),)
+
+
+class OrderItemModel(Base):
+    __tablename__ = "order_items"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    order_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    product_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    product_name: Mapped[str] = mapped_column(String(180), nullable=False)
+    product_image_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    unit_price: Mapped[int] = mapped_column(Integer, nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    line_total: Mapped[int] = mapped_column(Integer, nullable=False)
+    order: Mapped[OrderModel] = relationship(back_populates="items")
+
+    __table_args__ = (
+        CheckConstraint("unit_price >= 0", name="ck_order_items_price_nonnegative"),
+        CheckConstraint("quantity > 0", name="ck_order_items_quantity_positive"),
+        CheckConstraint("line_total >= 0", name="ck_order_items_total_nonnegative"),
+    )
 
 
 # ─── agent ──────────────────────────────────────────────────────────

@@ -20,6 +20,7 @@ export class Landing {
     readonly catalog = inject(ProductCatalogStore);
     readonly auth = inject(AuthService);
     private readonly messages = inject(MessageService);
+    private readonly cartStorageKey = 'bazarstore.pending-cart';
     readonly heroMainImage = signal<string | null>(null);
     readonly heroSecondaryImage = signal<string | null>(null);
 
@@ -29,6 +30,7 @@ export class Landing {
     cartItems: { product: CatalogProduct; quantity: number }[] = [];
     favoriteIds = new Set<string>();
     cartOpen = false;
+    orderSubmitting = false;
     newsletterEmail = '';
     subscriptionMessage = '';
     loggingOut = false;
@@ -36,6 +38,7 @@ export class Landing {
     private readonly categoryPageSize = 6;
 
     constructor() {
+        this.restoreCart();
         this.catalog.load(true).subscribe();
         this.http.get<{ hero_main_image_url: string | null; hero_secondary_image_url: string | null }>('/api/v1/storefront/settings').subscribe({
             next: (settings) => {
@@ -174,6 +177,7 @@ export class Landing {
         } else {
             this.cartItems = [...this.cartItems, { product, quantity: 1 }];
         }
+        this.persistCart();
         this.messages.add({
             severity: 'success',
             summary: 'Ajouté au panier',
@@ -190,10 +194,91 @@ export class Landing {
         this.cartItems = quantity > 0
             ? this.cartItems.map((entry, itemIndex) => itemIndex === index ? { ...entry, quantity } : entry)
             : this.cartItems.filter((_, itemIndex) => itemIndex !== index);
+        this.persistCart();
     }
 
     removeFromCart(index: number): void {
         this.cartItems = this.cartItems.filter((_, itemIndex) => itemIndex !== index);
+        this.persistCart();
+    }
+
+    placeOrder(): void {
+        if (!this.cartItems.length || this.orderSubmitting) return;
+
+        this.persistCart();
+        this.orderSubmitting = true;
+        if (this.auth.currentUser()) {
+            this.sendOrder();
+            return;
+        }
+
+        // A cookie session may still be restoring after the page was opened.
+        this.auth.refresh().pipe(catchError(() => EMPTY)).subscribe({
+            next: () => this.auth.currentUser() ? this.sendOrder() : this.goToLogin(),
+            complete: () => {
+                if (!this.auth.currentUser()) this.goToLogin();
+            }
+        });
+    }
+
+    private sendOrder(): void {
+        this.http.post<{ reference: string; total_amount: number }>('/api/v1/orders', {
+            items: this.cartItems.map(({ product, quantity }) => ({ product_id: product.id, quantity }))
+        }).pipe(finalize(() => (this.orderSubmitting = false))).subscribe({
+            next: (order) => {
+                this.cartItems = [];
+                this.clearPersistedCart();
+                this.cartOpen = false;
+                this.messages.add({
+                    severity: 'success',
+                    summary: 'Commande enregistrée',
+                    detail: `${order.reference} · ${this.formatPrice(order.total_amount)}`,
+                    life: 5000
+                });
+            },
+            error: (error: { error?: { detail?: string } }) => {
+                this.messages.add({
+                    severity: 'error',
+                    summary: 'Commande impossible',
+                    detail: error.error?.detail ?? 'Vérifiez le stock et réessayez.',
+                    life: 5000
+                });
+            }
+        });
+    }
+
+    private goToLogin(): void {
+        this.orderSubmitting = false;
+        void this.router.navigateByUrl('/auth/login');
+    }
+
+    private restoreCart(): void {
+        try {
+            const saved = sessionStorage.getItem(this.cartStorageKey);
+            if (!saved) return;
+            const parsed = JSON.parse(saved) as Array<{ product: CatalogProduct; quantity: number }>;
+            this.cartItems = Array.isArray(parsed)
+                ? parsed.filter((item) => item?.product?.id && Number.isInteger(item.quantity) && item.quantity > 0)
+                : [];
+        } catch {
+            this.cartItems = [];
+        }
+    }
+
+    private persistCart(): void {
+        try {
+            sessionStorage.setItem(this.cartStorageKey, JSON.stringify(this.cartItems));
+        } catch {
+            // The in-memory cart remains usable if browser storage is unavailable.
+        }
+    }
+
+    private clearPersistedCart(): void {
+        try {
+            sessionStorage.removeItem(this.cartStorageKey);
+        } catch {
+            // The in-memory cart was already cleared.
+        }
     }
 
     updateNewsletterEmail(event: Event): void {

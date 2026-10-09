@@ -8,6 +8,7 @@ import { Users } from './app/pages/users/users';
 import { Categories } from './app/pages/categories/categories';
 import { Products } from './app/pages/products/products';
 import { StorefrontMedia } from './app/pages/storefront-media/storefront-media';
+import { MyOrders } from './app/pages/orders/my-orders';
 import { adminGuard } from './app/core/auth/admin.guard';
 
 export const appRoutes: Routes = [
@@ -16,6 +17,7 @@ export const appRoutes: Routes = [
         component: Landing,
         pathMatch: 'full'
     },
+    { path: 'my-orders', component: MyOrders },
     {
         path: 'backoffice',
         component: AppLayout,

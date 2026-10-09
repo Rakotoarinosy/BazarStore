@@ -21,7 +21,10 @@ target_metadata = Base.metadata
 
 # Le dépôt contient encore des modèles de l'ancien service citoyen pour
 # compatibilité, mais les migrations BazarStore ne gèrent que l'authentification.
-ACTIVE_TABLES = {"users", "refresh_tokens", "product_categories", "products", "storefront_settings"}
+ACTIVE_TABLES = {
+    "users", "refresh_tokens", "product_categories", "products", "storefront_settings",
+    "orders", "order_items",
+}
 
 
 def include_object(obj, name, type_, reflected, compare_to):  # type: ignore[no-untyped-def]

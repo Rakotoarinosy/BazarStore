@@ -16,6 +16,9 @@
             <a href="#categories">Catégories</a>
             <a href="#products">Nos produits</a>
             <a href="#services">Nos engagements</a>
+            @if (auth.currentUser()) {
+                <a routerLink="/my-orders">Mes commandes</a>
+            }
         </nav>
 
         <div class="header-actions">
@@ -251,7 +254,10 @@
                     }
                 </div>
                 <div class="cart-total"><span>Sous-total indicatif</span><strong>{{ formatPrice(cartTotal) }}</strong></div>
-                <p class="cart-disclaimer">Panier de démonstration : la commande et le paiement ne sont pas encore activés.</p>
+                <p class="cart-disclaimer">La commande sera enregistrée sur votre compte. Le paiement n’est pas encore activé.</p>
+                <button class="button button-dark cart-order-button" type="button" (click)="placeOrder()" [disabled]="orderSubmitting">
+                    @if (orderSubmitting) { Enregistrement… } @else { Enregistrer la commande }
+                </button>
             } @else {
                 <div class="cart-empty"><i class="pi pi-shopping-bag"></i><strong>Votre panier attend ses premières trouvailles.</strong><button class="button button-dark" type="button" (click)="cartOpen = false">Continuer mes achats</button></div>
             }
