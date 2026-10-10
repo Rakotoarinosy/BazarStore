@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { EMPTY, catchError, finalize } from 'rxjs';
@@ -6,6 +7,12 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogProduct, ProductCatalogStore } from '../../core/products/product-catalog.store';
+import { SseClient } from '../../core/realtime/sse-client';
+
+interface StorefrontOrderStatus {
+    id: string;
+    status: string;
+}
 
 @Component({
     selector: 'app-landing',
@@ -17,8 +24,12 @@ import { CatalogProduct, ProductCatalogStore } from '../../core/products/product
 export class Landing {
     private readonly http = inject(HttpClient);
     private readonly router = inject(Router);
+    private readonly sse = inject(SseClient);
+    private readonly destroyRef = inject(DestroyRef);
     readonly catalog = inject(ProductCatalogStore);
     readonly auth = inject(AuthService);
+    private readonly myOrders = signal<StorefrontOrderStatus[]>([]);
+    readonly pendingOrdersCount = computed(() => this.myOrders().filter((order) => order.status !== 'completed').length);
     private readonly messages = inject(MessageService);
     private readonly cartStorageKey = 'bazarstore.pending-cart';
     readonly heroMainImage = signal<string | null>(null);
@@ -50,12 +61,34 @@ export class Landing {
         this.auth
             .refresh()
             .pipe(
+                takeUntilDestroyed(this.destroyRef),
                 catchError(() => {
                     this.auth.clearSession();
                     return EMPTY;
                 })
             )
-            .subscribe();
+            .subscribe(() => this.loadPendingOrdersCount());
+    }
+
+    private loadPendingOrdersCount(): void {
+        if (!this.auth.currentUser()) return;
+
+        this.http.get<StorefrontOrderStatus[]>('/api/v1/orders/mine').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+            next: (orders) => this.myOrders.set(orders)
+        });
+
+        this.sse
+            .stream('/api/v1/orders/mine/stream')
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((message) => {
+                if (message.event !== 'order') return;
+                const updated = JSON.parse(message.data) as StorefrontOrderStatus;
+                this.myOrders.update((orders) =>
+                    orders.some((order) => order.id === updated.id)
+                        ? orders.map((order) => order.id === updated.id ? updated : order)
+                        : [updated, ...orders]
+                );
+            });
     }
 
     logout(): void {

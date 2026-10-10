@@ -17,7 +17,10 @@
             <a href="#products">Nos produits</a>
             <a href="#services">Nos engagements</a>
             @if (auth.currentUser()) {
-                <a routerLink="/my-orders">Mes commandes</a>
+                <a class="orders-nav-link" routerLink="/my-orders" [attr.aria-label]="'Mes commandes' + (pendingOrdersCount() ? ', ' + pendingOrdersCount() + ' non livrée(s)' : '')">
+                    Mes commandes
+                    @if (pendingOrdersCount()) { <span class="orders-nav-count">{{ pendingOrdersCount() }}</span> }
+                </a>
             }
         </nav>
 
