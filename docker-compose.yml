@@ -42,6 +42,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    extra_hosts:
+      # MinIO d'AndaoHiasa sur le même VPS (port 9000 de l'hôte) : MINIO_ENDPOINT=host.docker.internal:9000
+      - "host.docker.internal:host-gateway"
     ports:
       # api.bazarstore.rakotoarinosy.com (webhook Stripe, accès direct à l'API)
       - "127.0.0.1:${API_PORT:-8070}:8000"
