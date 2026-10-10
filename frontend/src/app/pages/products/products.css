@@ -30,9 +30,118 @@
 .product-preview {
     width: 6rem;
     height: 6rem;
-    border-radius: 0.5rem;
+    flex: 0 0 6rem;
+    border-radius: 0.75rem;
     object-fit: cover;
     background: var(--surface-100);
+}
+
+.product-image-picker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 9rem;
+    padding: 1rem;
+    overflow: hidden;
+    border: 1px dashed var(--surface-400);
+    border-radius: 0.75rem;
+    background: var(--surface-50);
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.product-image-picker:hover,
+.product-image-picker:focus-within {
+    border-color: var(--primary-color);
+    background: var(--primary-50, var(--surface-100));
+}
+
+.product-image-picker.has-image {
+    border-style: solid;
+    border-color: var(--surface-200);
+    background: var(--surface-0);
+}
+
+.product-image-empty {
+    display: flex;
+    width: 100%;
+    min-height: 7rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    text-align: center;
+}
+
+.product-image-icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: 0.25rem;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--primary-100);
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.product-image-browse,
+.product-image-action {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.product-image-action,
+.product-image-remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.875rem;
+}
+
+.product-image-remove {
+    color: var(--red-500);
+}
+
+.product-image-action:hover,
+.product-image-remove:hover {
+    text-decoration: underline;
+}
+
+.product-image-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.product-image-input:focus-visible + .product-image-empty {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+.product-image-details {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 30rem) {
+    .product-image-picker.has-image {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }
 
 .product-row-description {
