@@ -1,6 +1,6 @@
 app-landing {
-    color: #202b43;
-    font-family: var(--font-family);
+    color: #1e293b;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .storefront {
@@ -271,8 +271,9 @@ app-landing {
 
         em {
             color: var(--brand-orange);
-            font-family: Georgia, 'Times New Roman', serif;
-            font-weight: 500;
+            font-family: inherit;
+            font-style: normal;
+            font-weight: 700;
         }
     }
 
@@ -1666,4 +1667,29 @@ app-landing {
         opacity: 1;
         transform: none;
     }
+}
+
+.storefront {
+    color: #1e293b;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1rem;
+    line-height: 1.55;
+}
+
+.storefront h1,
+.storefront h2,
+.storefront h3 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.storefront p {
+    line-height: 1.6;
+}
+
+.storefront button,
+.storefront input,
+.storefront a {
+    font-family: inherit;
 }
