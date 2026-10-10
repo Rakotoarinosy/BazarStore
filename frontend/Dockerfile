@@ -14,6 +14,8 @@ FROM nginx:1.27-alpine AS runtime
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/bazarstore/browser /usr/share/nginx/html
+# runtime-config.json (identifiant Google) écrit au démarrage depuis GOOGLE_CLIENT_ID.
+COPY --chmod=755 runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
 
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -q --spider http://127.0.0.1/ || exit 1

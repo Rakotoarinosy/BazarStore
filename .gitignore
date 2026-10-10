@@ -4,6 +4,5 @@
 # Configuration Google propre à chaque poste de développement.
 frontend/public/runtime-config.local.json
 
-# Fichiers de production propres au serveur (jamais commités)
-deploy/.env
-deploy/runtime-config.json
+# .env de la racine : généré sur le serveur par la CI (variables du docker-compose de prod).
+/.env

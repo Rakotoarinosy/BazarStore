@@ -145,9 +145,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          source: deploy/docker-compose.prod.yml
+          source: docker-compose.yml
           target: ${{ env.DEPLOY_PATH }}
-          strip_components: 1
 
       - name: Mise à jour des conteneurs
         uses: appleboy/ssh-action@v1.2.0
@@ -166,20 +165,24 @@ jobs:
           script: |
             set -euo pipefail
             cd "$DEPLOY_PATH"
-            test -f .env || { echo "::error::$DEPLOY_PATH/.env manquant (voir deploy/README.md)"; exit 1; }
-            test -f runtime-config.json || { echo "::error::$DEPLOY_PATH/runtime-config.json manquant"; exit 1; }
+            test -f backend/.env || { echo "::error::$DEPLOY_PATH/backend/.env manquant (modèle : deploy/.env.production.example)"; exit 1; }
 
-            # Version déployée gardée dans .env : un `docker compose up -d` manuel reste sur ce commit.
-            if grep -q '^IMAGE_TAG=' .env; then sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$IMAGE_TAG/" .env; else echo "IMAGE_TAG=$IMAGE_TAG" >> .env; fi
+            # .env de la racine = variables du docker-compose, régénéré à chaque déploiement :
+            # commit déployé (un `docker compose up -d` manuel reste sur cette version) + valeurs
+            # reprises de backend/.env. Les secrets restent uniquement dans backend/.env.
+            { echo "# Généré par GitHub Actions — ne pas modifier (éditer backend/.env)"
+              echo "IMAGE_TAG=$IMAGE_TAG"
+              grep -E '^(GOOGLE_CLIENT_ID|API_PORT|WEB_PORT)=' backend/.env || true
+            } > .env
 
             # Images privées : jeton GitHub éphémère de ce déploiement, retiré juste après.
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            docker compose -f docker-compose.prod.yml pull api web
+            docker compose pull api web
             docker logout ghcr.io
 
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose up -d --remove-orphans
             docker image prune -f
-            docker compose -f docker-compose.prod.yml ps
+            docker compose ps
 
       - name: Vérification HTTPS
         run: |

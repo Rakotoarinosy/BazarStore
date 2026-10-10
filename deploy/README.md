@@ -4,7 +4,7 @@
 |---|---|
 | Site | https://bazarstore.rakotoarinosy.com (le site relaie `/api/v1` vers l'API) |
 | API | https://api.bazarstore.rakotoarinosy.com (webhook Stripe, accès direct) |
-| Serveur | VPS BazarStore, dossier `/srv/BazarStore` |
+| Serveur | VPS BazarStore (217.76.49.226), dossier `/srv/BazarStore` |
 | Images | `ghcr.io/rakotoarinosy/bazarstore-backend` et `-frontend` (privées) |
 | Stockage des images produit | MinIO du VPS AndaoHiasa (port 9000 filtré sur l'IP du VPS BazarStore) |
 
@@ -15,7 +15,7 @@ git push main ──► GitHub Actions
                    ├─ backend : ruff + pytest
                    ├─ frontend : ng build --configuration production
                    ├─ images Docker → GHCR (tag = commit + latest)
-                   └─ SSH sur le VPS : copie du docker-compose, pull, up -d, vérification HTTPS
+                   └─ SSH sur le VPS : copie de docker-compose.yml, pull, up -d, vérification HTTPS
 
 VPS BazarStore
   nginx (HTTPS, certbot) ──► 127.0.0.1:4270  conteneur web  (Angular + relais /api/ → api)
@@ -61,21 +61,35 @@ ssh-copy-id -i ~/.ssh/bazarstore_deploy.pub <utilisateur>@<IP_VPS_BAZARSTORE>
 
 L'utilisateur doit faire partie du groupe `docker`. Si tu réutilises la clé de l'action AndaoHiasa, ajoute seulement sa clé publique dans `~/.ssh/authorized_keys` du VPS BazarStore.
 
-### 4. Dossier de l'application
+### 4. Dossier de l'application et `backend/.env`
 
-```bash
-sudo mkdir -p /srv/BazarStore && sudo chown "$USER": /srv/BazarStore
-cd /srv/BazarStore
+Sur le serveur, il n'y a **qu'un seul fichier à remplir** : `backend/.env`.
+
+```
+/srv/BazarStore/
+├── docker-compose.yml   copié par la CI (celui de la racine du dépôt)
+├── backend/.env         variables de production : à remplir (chmod 600)
+└── .env                 généré par la CI à chaque déploiement : ne pas modifier
 ```
 
-Copier depuis le dépôt et remplir :
+Depuis ta machine, envoyer le modèle :
 
-- `deploy/.env.production.example` → `/srv/BazarStore/.env`, puis `chmod 600 .env`.
-  - `SECRET_KEY` et `POSTGRES_PASSWORD` : `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`
-  - Reporter le même mot de passe dans `DATABASE_URL`.
-- `deploy/runtime-config.example.json` → `/srv/BazarStore/runtime-config.json`, avec le `googleClientId` de production.
+```bash
+ssh fehizoro@217.76.49.226 "mkdir -p /srv/BazarStore/backend"
+scp deploy/.env.production.example fehizoro@217.76.49.226:/srv/BazarStore/backend/.env
+```
 
-`docker-compose.prod.yml` n'est pas à copier : la CI le dépose à chaque déploiement.
+Puis, sur le serveur, générer les secrets sans qu'ils quittent le VPS :
+
+```bash
+cd /srv/BazarStore
+SECRET=$(openssl rand -hex 32); PG=$(openssl rand -hex 24)
+sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$SECRET|; s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$PG|; s|MOT_DE_PASSE_POSTGRES|$PG|" backend/.env
+chmod 600 backend/.env
+nano backend/.env    # admin, Google, MinIO, Stripe…
+```
+
+`GOOGLE_CLIENT_ID` sert aussi au site : son conteneur génère `runtime-config.json` au démarrage.
 
 ### 5. nginx + HTTPS
 
@@ -86,7 +100,7 @@ sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d bazarstore.rakotoarinosy.com -d api.bazarstore.rakotoarinosy.com
 ```
 
-Certbot ajoute le HTTPS, la redirection HTTP → HTTPS et le renouvellement automatique. Si `WEB_PORT` ou `API_PORT` changent dans `.env`, il faut aussi les changer dans ce fichier.
+Certbot ajoute le HTTPS, la redirection HTTP → HTTPS et le renouvellement automatique. Si `WEB_PORT` ou `API_PORT` changent dans `backend/.env`, il faut aussi les changer dans ce fichier.
 
 ### 6. MinIO sur le VPS AndaoHiasa
 
@@ -114,7 +128,7 @@ EOF
   mc admin policy attach local bazarstore-rw --user bazarstore'
 ```
 
-Dans le `.env` de BazarStore : `MINIO_ACCESS_KEY=bazarstore`, `MINIO_SECRET_KEY=<le secret choisi>` et `MINIO_ENDPOINT=<IP_VPS_ANDAOHIASA>:9000`.
+Dans `backend/.env` de BazarStore : `MINIO_ACCESS_KEY=bazarstore`, `MINIO_SECRET_KEY=<le secret choisi>` et `MINIO_ENDPOINT=<IP_VPS_ANDAOHIASA>:9000`.
 
 **b) Filtrer le port 9000 sur l'IP du VPS BazarStore.**
 
@@ -161,7 +175,7 @@ Les images GHCR sont privées, mais **rien à configurer sur le VPS** : le dépl
 Pousser sur `main`, ou lancer le workflow **CI/CD** à la main (onglet Actions → Run workflow). Au premier démarrage :
 
 - les migrations créent les tables ;
-- l'administrateur `BOOTSTRAP_ADMIN_EMAIL` est créé. **Retirer ensuite `BOOTSTRAP_ADMIN_PASSWORD` du `.env`** ;
+- l'administrateur `BOOTSTRAP_ADMIN_EMAIL` est créé. **Retirer ensuite `BOOTSTRAP_ADMIN_PASSWORD` de `backend/.env`** ;
 - le catalogue est vide : créer les catégories et les produits depuis le backoffice. Leurs images partent dans MinIO.
 
 ---
@@ -170,25 +184,25 @@ Pousser sur `main`, ou lancer le workflow **CI/CD** à la main (onglet Actions �
 
 ```bash
 cd /srv/BazarStore
-docker compose -f docker-compose.prod.yml ps              # état des conteneurs
-docker compose -f docker-compose.prod.yml logs -f api     # journaux de l'API (JSON)
-docker compose -f docker-compose.prod.yml restart api     # après une modification du .env
+docker compose ps                   # état des conteneurs
+docker compose logs -f api          # journaux de l'API (JSON)
+docker compose up -d                # après une modification de backend/.env (recrée les conteneurs)
 ```
 
-**Revenir à une version précédente** : mettre le commit voulu dans `IMAGE_TAG=` du `.env` (la CI y écrit le commit déployé), puis :
+**Revenir à une version précédente** : mettre le commit voulu dans `IMAGE_TAG=` du `.env` de la racine (la CI y écrit le commit déployé), puis :
 
 ```bash
 echo "<jeton GitHub read:packages>" | docker login ghcr.io -u Rakotoarinosy --password-stdin
-docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
+docker compose pull && docker compose up -d
 docker logout ghcr.io
 ```
 
-Si la version précédente a appliqué une migration, il faut d'abord la défaire avec `docker compose -f docker-compose.prod.yml exec api alembic downgrade -1`.
+Si la version la plus récente a appliqué une migration, il faut d'abord la défaire : `docker compose exec api alembic downgrade -1`.
 
 **Sauvegarde de la base** (par exemple une tâche cron quotidienne) :
 
 ```bash
-docker compose -f /srv/BazarStore/docker-compose.prod.yml exec -T db \
+docker compose -f /srv/BazarStore/docker-compose.yml exec -T db \
   pg_dump -U bazarstore bazarstore | gzip > /srv/BazarStore/backups/bazarstore-$(date +%F).sql.gz
 ```
 
@@ -197,9 +211,8 @@ docker compose -f /srv/BazarStore/docker-compose.prod.yml exec -T db \
 | Fichier | Rôle |
 |---|---|
 | `.github/workflows/ci-cd.yml` | Tests, build, images, déploiement, vérification HTTPS |
-| `deploy/docker-compose.prod.yml` | Conteneurs db, api, web (copié sur le VPS par la CI) |
-| `deploy/.env.production.example` | Modèle du `.env` de production |
-| `deploy/runtime-config.example.json` | Identifiant Google du site |
+| `docker-compose.yml` (racine) | Conteneurs db, api, web (copié sur le VPS par la CI) |
+| `deploy/.env.production.example` | Modèle de `backend/.env` en production |
 | `deploy/nginx/bazarstore.conf` | Site nginx de l'hôte (avant certbot) |
 | `backend/Dockerfile` | Image de l'API (dépendances figées, migrations au démarrage) |
-| `frontend/Dockerfile`, `frontend/nginx.conf` | Image du site (build Angular, relais `/api/`) |
+| `frontend/Dockerfile`, `frontend/nginx.conf`, `frontend/runtime-config.sh` | Image du site (build Angular, relais `/api/`, configuration Google générée au démarrage) |
