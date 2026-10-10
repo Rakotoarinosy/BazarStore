@@ -189,6 +189,15 @@ docker compose logs -f api          # journaux de l'API (JSON)
 docker compose up -d                # après une modification de backend/.env (recrée les conteneurs)
 ```
 
+**Accéder à la base depuis ton PC (tunnel SSH)** : PostgreSQL n'écoute que sur `127.0.0.1:5434` du VPS (`DB_PORT`), jamais sur Internet.
+
+```bash
+ssh -N -L 15432:127.0.0.1:5434 fehizoro@217.76.49.226     # laisser ouvert
+psql "postgresql://bazarstore@localhost:15432/bazarstore"   # ou DBeaver / pgAdmin : localhost:15432
+```
+
+Utilisateur `bazarstore`, mot de passe : `POSTGRES_PASSWORD` de `backend/.env`.
+
 **Revenir à une version précédente** : mettre le commit voulu dans `IMAGE_TAG=` du `.env` de la racine (la CI y écrit le commit déployé), puis :
 
 ```bash

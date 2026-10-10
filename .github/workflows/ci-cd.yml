@@ -172,7 +172,7 @@ jobs:
             # reprises de backend/.env. Les secrets restent uniquement dans backend/.env.
             { echo "# Généré par GitHub Actions — ne pas modifier (éditer backend/.env)"
               echo "IMAGE_TAG=$IMAGE_TAG"
-              grep -E '^(GOOGLE_CLIENT_ID|API_PORT|WEB_PORT)=' backend/.env || true
+              grep -E '^(GOOGLE_CLIENT_ID|API_PORT|WEB_PORT|DB_PORT)=' backend/.env || true
             } > .env
 
             # Images privées : jeton GitHub éphémère de ce déploiement, retiré juste après.
