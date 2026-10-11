@@ -66,6 +66,27 @@
                     <button class="order-dialog-close" type="button" aria-label="Fermer les détails" (click)="closeDetails()"><i class="pi pi-times"></i></button>
                 </header>
                 <div class="order-dialog-status"><span>Statut</span><span class="order-status" [attr.data-status]="order.status">{{ statusLabel(order.status) }}</span></div>
+                <section class="order-timeline-section" aria-label="Avancement de la commande">
+                    <p-timeline [value]="timelineSteps(order)" [style.gridTemplateColumns]="'repeat(' + timelineSteps(order).length + ', minmax(0, 1fr))'" layout="horizontal" align="top" styleClass="order-status-timeline">
+                        <ng-template #marker let-step>
+                            <span class="order-timeline-marker" [class.done]="step.state === 'done'" [class.current]="step.state === 'current'" [class.upcoming]="step.state === 'upcoming'" [class.cancelled]="step.state === 'cancelled'">
+                                <i [class]="step.icon" aria-hidden="true"></i>
+                            </span>
+                        </ng-template>
+                        <ng-template #content let-step>
+                            <div class="order-timeline-content">
+                                <strong>{{ step.label }}</strong>
+                                @if (step.date) {
+                                    <small>{{ formatDate(step.date) }}</small>
+                                } @else if (step.state === 'upcoming') {
+                                    <small>À venir</small>
+                                } @else if (step.state === 'done') {
+                                    <small>Étape terminée</small>
+                                }
+                            </div>
+                        </ng-template>
+                    </p-timeline>
+                </section>
                 <div class="order-dialog-items">
                     @for (item of order.items; track item.id) {
                         <div class="order-item">

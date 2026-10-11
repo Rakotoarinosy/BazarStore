@@ -12,11 +12,27 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { Table, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { TimelineModule } from 'primeng/timeline';
 import { ToastModule } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ManagedOrder, ORDER_TRANSITIONS, OrderAdminStore, OrderStatus } from '../../core/orders/order-admin.store';
 
 type Severity = 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
+
+interface OrderTimelineStep {
+    label: string;
+    icon: string;
+    state: 'done' | 'current' | 'upcoming' | 'cancelled';
+    date: string | null;
+}
+
+const ORDER_PROGRESS: { status: OrderStatus; label: string; icon: string }[] = [
+    { status: 'pending', label: 'En attente', icon: 'pi pi-clock' },
+    { status: 'confirmed', label: 'Confirmée', icon: 'pi pi-check' },
+    { status: 'processing', label: 'En préparation', icon: 'pi pi-box' },
+    { status: 'shipped', label: 'Expédiée', icon: 'pi pi-truck' },
+    { status: 'completed', label: 'Livrée', icon: 'pi pi-flag' }
+];
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
     pending: 'En attente',
@@ -49,7 +65,7 @@ const ACTIONS: Record<OrderStatus, { label: string; icon: string; severity?: Sev
 @Component({
     selector: 'app-order-management',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ToolbarModule, ButtonModule, DialogModule, InputTextModule, SelectModule, TagModule, ToastModule, ConfirmDialogModule],
+    imports: [CommonModule, FormsModule, TableModule, ToolbarModule, ButtonModule, DialogModule, InputTextModule, SelectModule, TagModule, TimelineModule, ToastModule, ConfirmDialogModule],
     templateUrl: './order-management.html',
     styleUrl: './order-management.css',
     providers: [ConfirmationService, MessageService]
@@ -130,6 +146,23 @@ export class OrderManagement implements OnInit {
 
     statusLabel(status: OrderStatus): string {
         return STATUS_LABELS[status];
+    }
+
+    timelineSteps(order: ManagedOrder): OrderTimelineStep[] {
+        if (order.status === 'cancelled') {
+            return [
+                { label: 'Commande passée', icon: 'pi pi-shopping-cart', state: 'done', date: order.created_at },
+                { label: 'Annulée', icon: 'pi pi-times', state: 'cancelled', date: order.updated_at }
+            ];
+        }
+
+        const currentIndex = ORDER_PROGRESS.findIndex((step) => step.status === order.status);
+        return ORDER_PROGRESS.map((step, index) => ({
+            label: step.label,
+            icon: step.icon,
+            state: index < currentIndex ? 'done' : index === currentIndex ? 'current' : 'upcoming',
+            date: index === 0 ? order.created_at : index === currentIndex ? order.updated_at : null
+        }));
     }
 
     statusSeverity(status: OrderStatus): Severity {

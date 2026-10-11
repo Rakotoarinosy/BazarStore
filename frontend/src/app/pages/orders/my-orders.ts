@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
+import { TimelineModule } from 'primeng/timeline';
 import { SseClient } from '../../core/realtime/sse-client';
 
 interface OrderItem {
@@ -21,6 +22,7 @@ interface CustomerOrder {
     status: string;
     total_amount: number;
     created_at: string;
+    updated_at: string | null;
     payment_provider: 'stripe' | 'mvola' | null;
     payment_status: 'pending' | 'completed' | 'failed' | null;
     payment_reference: string | null;
@@ -34,10 +36,25 @@ interface CardCheckout {
     order: CustomerOrder;
 }
 
+interface OrderTimelineStep {
+    label: string;
+    icon: string;
+    state: 'done' | 'current' | 'upcoming' | 'cancelled';
+    date: string | null;
+}
+
+const ORDER_PROGRESS: { status: string; label: string; icon: string }[] = [
+    { status: 'pending', label: 'En attente', icon: 'pi pi-clock' },
+    { status: 'confirmed', label: 'Confirmée', icon: 'pi pi-check' },
+    { status: 'processing', label: 'En préparation', icon: 'pi pi-box' },
+    { status: 'shipped', label: 'Expédiée', icon: 'pi pi-truck' },
+    { status: 'completed', label: 'Livrée', icon: 'pi pi-flag' }
+];
+
 @Component({
     selector: 'app-my-orders',
     standalone: true,
-    imports: [RouterModule, ConfirmPopupModule],
+    imports: [RouterModule, ConfirmPopupModule, TimelineModule],
     templateUrl: './my-orders.html',
     styleUrl: './my-orders.css',
     providers: [ConfirmationService]
@@ -105,6 +122,23 @@ export class MyOrders {
             cancelled: 'Annulée'
         };
         return labels[status] ?? status;
+    }
+
+    timelineSteps(order: CustomerOrder): OrderTimelineStep[] {
+        if (order.status === 'cancelled') {
+            return [
+                { label: 'Commande passée', icon: 'pi pi-shopping-cart', state: 'done', date: order.created_at },
+                { label: 'Annulée', icon: 'pi pi-times', state: 'cancelled', date: order.updated_at }
+            ];
+        }
+
+        const currentIndex = ORDER_PROGRESS.findIndex((step) => step.status === order.status);
+        return ORDER_PROGRESS.map((step, index) => ({
+            label: step.label,
+            icon: step.icon,
+            state: index < currentIndex ? 'done' : index === currentIndex ? 'current' : 'upcoming',
+            date: index === 0 ? order.created_at : index === currentIndex ? order.updated_at : null
+        }));
     }
 
     isCardPending(order: CustomerOrder): boolean {

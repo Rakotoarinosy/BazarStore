@@ -36,6 +36,121 @@
     background: var(--surface-ground);
 }
 
+.admin-order-timeline {
+    margin: 0 0 1.25rem;
+    padding: 1rem 1rem 0.2rem;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--content-border-radius);
+    background: var(--surface-ground);
+}
+
+.admin-order-timeline-marker {
+    display: grid;
+    width: 1.75rem;
+    height: 1.75rem;
+    place-items: center;
+    border: 1px solid var(--surface-border);
+    border-radius: 50%;
+    color: var(--text-color-secondary);
+    background: var(--surface-card);
+    font-size: 0.72rem;
+
+    &.done {
+        border-color: #a9dfc1;
+        color: #168153;
+        background: #e8f7ef;
+    }
+
+    &.current {
+        border-color: var(--primary-color);
+        color: #fff;
+        background: var(--primary-color);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-color) 14%, transparent);
+    }
+
+    &.cancelled {
+        border-color: #f0caca;
+        color: #b33b3b;
+        background: #fff0f0;
+    }
+}
+
+.admin-order-timeline-content {
+    display: grid;
+    justify-items: center;
+    gap: 0.2rem;
+    padding: 0.45rem 0.2rem 0.6rem;
+    text-align: center;
+
+    strong {
+        color: var(--text-color);
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    small {
+        color: var(--text-color-secondary);
+        font-size: 0.7rem;
+    }
+}
+
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal {
+    display: grid;
+    width: 100%;
+    align-items: start;
+}
+
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal .p-timeline-event {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+    grid-template-rows: 1.75rem auto;
+    flex: none;
+}
+
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal .p-timeline-event-opposite {
+    display: none;
+}
+
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal .p-timeline-event-separator {
+    position: absolute;
+    inset: 0 0 auto;
+    display: flex;
+    height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+}
+
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal .p-timeline-event-separator::after {
+    position: absolute;
+    z-index: 0;
+    top: 50%;
+    right: -50%;
+    left: 50%;
+    height: 2px;
+    background: var(--surface-border);
+    content: '';
+    transform: translateY(-50%);
+}
+
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal .p-timeline-event:last-child .p-timeline-event-separator::after,
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal .p-timeline-event-connector {
+    display: none;
+}
+
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal .admin-order-timeline-marker {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+}
+
+:host ::ng-deep .admin-order-status-timeline.p-timeline-horizontal .p-timeline-event-content {
+    min-width: 0;
+    grid-row: 2;
+    padding: 0;
+}
+
 .order-detail-label {
     color: var(--text-color-secondary);
     font-size: 0.75rem;

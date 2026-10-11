@@ -110,6 +110,34 @@
                 <span class="text-muted-color text-sm ml-auto">Passée le {{ formatDate(order.created_at) }}</span>
             </div>
 
+            <section class="admin-order-timeline" aria-label="Avancement de la commande">
+                <p-timeline
+                    [value]="timelineSteps(order)"
+                    [style.gridTemplateColumns]="'repeat(' + timelineSteps(order).length + ', minmax(0, 1fr))'"
+                    layout="horizontal"
+                    align="top"
+                    styleClass="admin-order-status-timeline"
+                >
+                    <ng-template #marker let-step>
+                        <span class="admin-order-timeline-marker" [class.done]="step.state === 'done'" [class.current]="step.state === 'current'" [class.upcoming]="step.state === 'upcoming'" [class.cancelled]="step.state === 'cancelled'">
+                            <i [class]="step.icon" aria-hidden="true"></i>
+                        </span>
+                    </ng-template>
+                    <ng-template #content let-step>
+                        <div class="admin-order-timeline-content">
+                            <strong>{{ step.label }}</strong>
+                            @if (step.date) {
+                                <small>{{ formatDate(step.date) }}</small>
+                            } @else if (step.state === 'upcoming') {
+                                <small>À venir</small>
+                            } @else if (step.state === 'done') {
+                                <small>Étape terminée</small>
+                            }
+                        </div>
+                    </ng-template>
+                </p-timeline>
+            </section>
+
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 mb-5">
                 <div class="order-detail-block">
                     <span class="order-detail-label">Client</span>
