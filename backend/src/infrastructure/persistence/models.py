@@ -88,6 +88,8 @@ class ProductCategoryModel(Base):
     description: Mapped[str] = mapped_column(Text, default="", server_default="", nullable=False)
     image_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(), nullable=False)
+    # product.category Odoo correspondante (catégorie créée ou rapprochée par la synchronisation).
+    odoo_category_id: Mapped[int | None] = mapped_column(Integer, nullable=True, unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     products: Mapped[list["ProductModel"]] = relationship(back_populates="category", passive_deletes=True)
@@ -117,6 +119,10 @@ class ProductModel(Base):
     category_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("product_categories.id", ondelete="RESTRICT"), nullable=False, index=True
     )
+    # Produit lié à Odoo (product.product.id) : Odoo est maître de la référence, du nom, du prix,
+    # du stock, du statut et de la catégorie (voir ODOO_MANAGED_PRODUCT_FIELDS).
+    odoo_product_id: Mapped[int | None] = mapped_column(Integer, nullable=True, unique=True)
+    odoo_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     category: Mapped[ProductCategoryModel] = relationship(back_populates="products")
@@ -187,6 +193,35 @@ class OrderItemModel(Base):
         CheckConstraint("quantity > 0", name="ck_order_items_quantity_positive"),
         CheckConstraint("line_total >= 0", name="ck_order_items_total_nonnegative"),
     )
+
+
+# ─── intégration ERP ────────────────────────────────────────────────
+
+
+class IntegrationSyncRunModel(Base):
+    """Journal des synchronisations avec Odoo : une ligne par exécution, consultable et datée."""
+
+    __tablename__ = "integration_sync_runs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    correlation_id: Mapped[str] = mapped_column(String(36), unique=True, index=True, nullable=False)
+    # odoo_catalog (catalogue complet) | odoo_product (un produit précis)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    # api | cli
+    trigger: Mapped[str] = mapped_column(String(16), nullable=False)
+    # running | succeeded | partial (des produits rejetés) | failed
+    status: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    updated_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    unchanged_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    deactivated_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    rejected_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    # Motifs de rejet : [{"odoo_id": 12, "reason": "..."}] (50 au plus).
+    rejections: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 # ─── agent ──────────────────────────────────────────────────────────

@@ -255,19 +255,14 @@ export class Landing {
     }
 
     private sendOrder(): void {
-        this.http.post<{ reference: string; total_amount: number }>('/api/v1/orders', {
+        this.http.post('/api/v1/orders', {
             items: this.cartItems.map(({ product, quantity }) => ({ product_id: product.id, quantity }))
         }).pipe(finalize(() => (this.orderSubmitting = false))).subscribe({
-            next: (order) => {
+            next: () => {
                 this.cartItems = [];
                 this.clearPersistedCart();
                 this.cartOpen = false;
-                this.messages.add({
-                    severity: 'success',
-                    summary: 'Commande enregistrée',
-                    detail: `${order.reference} · ${this.formatPrice(order.total_amount)}`,
-                    life: 5000
-                });
+                void this.router.navigateByUrl('/my-orders');
             },
             error: (error: { error?: { detail?: string } }) => {
                 this.messages.add({

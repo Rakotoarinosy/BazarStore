@@ -90,6 +90,22 @@ class Settings(BaseSettings):
     # URL HTTPS publique appelée par MVola en fin de transaction ; vide = suivi par polling.
     mvola_callback_url: str | None = None
 
+    # ─── Intégration Odoo 19 (ERP) : synchronisation du catalogue Odoo → BazarStore ───
+    # Interrupteur général : false = routes d'intégration coupées, aucun appel à Odoo.
+    odoo_sync_enabled: bool = False
+    # Adresse du serveur Odoo (HTTPS obligatoire en production) et base visée (X-Odoo-Database).
+    odoo_url: str | None = None
+    odoo_db: str | None = None
+    # Clé API d'un utilisateur Odoo dédié à l'intégration (droits de lecture produits/stock).
+    odoo_api_key: str | None = None
+    odoo_timeout_seconds: float = 10
+    # Nouvelles tentatives sur erreur temporaire (délai, 5xx, 429), espacées de 1 s, 2 s, 4 s…
+    odoo_max_retries: int = 3
+    odoo_retry_backoff_seconds: float = 1.0
+    # Entrepôt dont le stock libre est publié ; vide = tous les entrepôts de la société.
+    odoo_warehouse_id: int | None = None
+    odoo_lang: str = "fr_FR"
+
     # ─── IA (analyse des demandes) ───
     # Sans clé, POST /requests/{id}/analyze répond 503 ; le reste de l'API fonctionne normalement.
     gemini_api_key: str | None = None
@@ -117,6 +133,12 @@ class Settings(BaseSettings):
             )
         if self.environment == "production" and "*" in self.cors_origins:
             raise ValueError("CORS_ORIGINS must not contain '*' (credentials are enabled)")
+        if (
+            self.environment == "production"
+            and self.odoo_sync_enabled
+            and not (self.odoo_url or "").startswith("https://")
+        ):
+            raise ValueError("ODOO_URL must use https:// in production")
         return self
 
     @property

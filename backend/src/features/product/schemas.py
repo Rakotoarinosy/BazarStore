@@ -48,6 +48,9 @@ class ProductOut(BaseModel):
     category_id: str
     category_name: str
     is_active: bool
+    # Renseigné si le produit est géré dans Odoo (champs maîtres non modifiables ici).
+    odoo_product_id: int | None = None
+    odoo_synced_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

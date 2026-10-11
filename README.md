@@ -14,6 +14,8 @@ backoffice, ainsi qu’une API FastAPI pour l’authentification et la gestion d
 - Les inscriptions publiques créent un compte `customer`. L’administrateur initial est créé au
   démarrage depuis la configuration du backend.
 - Interface de backoffice basée sur le template Sakai.
+- Intégration Odoo 19 (lot 1) : synchronisation du catalogue Odoo → BazarStore, désactivée par
+  défaut. Voir [backend/docs/integration-odoo.md](backend/docs/integration-odoo.md).
 
 Le catalogue et le panier sont actuellement des données d’exemple gérées côté frontend. La
 validation des commandes, le paiement, l’enregistrement serveur du panier et la synchronisation

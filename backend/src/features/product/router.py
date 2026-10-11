@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from src.domain.errors import DomainError
+from src.domain.integration import ODOO_MANAGED_PRODUCT_FIELDS
 from src.domain.user import Role
 from src.features.product.schemas import (
     ProductCreateIn,
@@ -43,6 +44,28 @@ class ProductConflictError(DomainError):
         super().__init__("Product code already exists or the category is still in use")
 
 
+class ProductManagedByOdooConflictError(DomainError):
+    def __init__(self, fields: list[str]) -> None:
+        detail = f" ({', '.join(fields)})" if fields else ""
+        super().__init__(f"Ce produit est géré dans Odoo : modifiez-le dans l'ERP{detail}.")
+
+
+def _reject_odoo_managed_changes(product: ProductModel, changes: dict[str, object]) -> None:
+    """Produit lié à Odoo : seuls la description et l'image restent modifiables ici.
+
+    Une valeur identique est acceptée, pour que le formulaire puisse renvoyer tous les champs.
+    """
+    if product.odoo_product_id is None:
+        return
+    locked = sorted(
+        name
+        for name, value in changes.items()
+        if name in ODOO_MANAGED_PRODUCT_FIELDS and getattr(product, name) != value
+    )
+    if locked:
+        raise ProductManagedByOdooConflictError(locked)
+
+
 def _out(product: ProductModel) -> ProductOut:
     quantity = product.quantity
     inventory_status = "OUTOFSTOCK" if quantity == 0 else "LOWSTOCK" if quantity <= 5 else "INSTOCK"
@@ -60,6 +83,8 @@ def _out(product: ProductModel) -> ProductOut:
         category_id=product.category_id,
         category_name=product.category.name,
         is_active=product.is_active,
+        odoo_product_id=product.odoo_product_id,
+        odoo_synced_at=product.odoo_synced_at,
         created_at=product.created_at,
         updated_at=product.updated_at,
     )
@@ -128,6 +153,7 @@ def update_product(product_id: str, payload: ProductUpdateIn, db: Session = Depe
         raise ProductNotFoundError(product_id)
 
     changes = payload.model_dump(exclude_unset=True)
+    _reject_odoo_managed_changes(product, changes)
     _validate_image_key(changes.get("image_key"))
     if changes.get("category_id") and db.get(ProductCategoryModel, changes["category_id"]) is None:
         raise ProductCategoryNotFoundError(changes["category_id"])
@@ -184,6 +210,9 @@ def delete_product(product_id: str, db: Session = Depends(get_db)) -> Response:
     product = db.get(ProductModel, product_id)
     if product is None:
         raise ProductNotFoundError(product_id)
+    if product.odoo_product_id is not None:
+        # Il serait recréé à la prochaine synchronisation : l'archiver dans Odoo.
+        raise ProductManagedByOdooConflictError([])
     image_key = product.image_key
     db.delete(product)
     db.commit()
