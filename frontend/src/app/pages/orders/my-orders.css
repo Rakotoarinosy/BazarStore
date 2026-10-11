@@ -333,6 +333,46 @@
     font-weight: 600;
 }
 
+.order-cancel-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+
+    small {
+        color: #778197;
+        font-size: 0.72rem;
+        text-align: right;
+    }
+}
+
+.order-cancel-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid #f0caca;
+    border-radius: 7px;
+    color: #a33636;
+    background: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+
+    &:hover:not(:disabled) {
+        border-color: #d89090;
+        background: #fff6f6;
+    }
+
+    &:disabled {
+        cursor: wait;
+        opacity: 0.7;
+    }
+}
+
 .order-dialog-backdrop {
     position: fixed;
     z-index: 50;
@@ -482,4 +522,5 @@
     }
 
     .order-dialog { padding: 1rem; }
+    .order-cancel-actions { align-items: flex-end; flex-direction: column; }
 }

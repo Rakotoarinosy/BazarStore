@@ -112,9 +112,17 @@
                                 @if (paymentBusy()) { <i class="pi pi-spin pi-spinner"></i> Patientez… } @else { <i class="pi pi-credit-card"></i> Payer {{ formatPrice(order.total_amount) }} }
                             </button>
                         </div>
-                        @if (paymentMessage()) {
-                            <p class="order-payment-message" [class.order-payment-error]="paymentError()" role="status">{{ paymentMessage() }}</p>
-                        }
+                    </div>
+                }
+                @if (paymentMessage()) {
+                    <p class="order-payment-message" [class.order-payment-error]="paymentError()" [class.order-payment-success]="!paymentError()" role="status">{{ paymentMessage() }}</p>
+                }
+                @if (canCancel(order)) {
+                    <div class="order-cancel-actions">
+                        <button class="order-cancel-button" type="button" [disabled]="cancelBusy()" (click)="cancelOrder(order)">
+                            @if (cancelBusy()) { <i class="pi pi-spin pi-spinner"></i> Annulation… } @else { <i class="pi pi-times"></i> Annuler la commande }
+                        </button>
+                        <small>Possible tant que la commande est en attente et qu’aucun paiement n’est en cours.</small>
                     </div>
                 }
             </section>

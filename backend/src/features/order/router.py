@@ -130,6 +130,11 @@ class OrderNotPayableConflictError(DomainError):
         super().__init__("Cette commande est déjà payée ou ne peut plus être payée.")
 
 
+class OrderCancellationConflictError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("Cette commande ne peut plus être annulée.")
+
+
 class OrderCancelledConflictError(DomainError):
     def __init__(self) -> None:
         super().__init__("Une commande annulée ne peut pas être facturée.")
@@ -263,6 +268,31 @@ async def stream_my_orders(
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
+
+
+@router.post("/{order_id}/cancel", response_model=OrderOut)
+def cancel_my_order(
+    order_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> OrderOut:
+    """Permet au client d'annuler sa commande en attente, avant le démarrage du paiement."""
+    order = db.scalars(
+        select(OrderModel)
+        .options(selectinload(OrderModel.items).selectinload(OrderItemModel.product))
+        .where(OrderModel.id == order_id, OrderModel.user_id == user.id)
+        .with_for_update()
+    ).first()
+    if order is None:
+        raise OrderNotFoundError()
+    if order.status != "pending" or order.payment_status in {"pending", "completed"}:
+        raise OrderCancellationConflictError()
+
+    _restore_stock(order)
+    order.status = "cancelled"
+    db.commit()
+    db.refresh(order)
+    return serialize_order(order)
 
 
 # ─── Cycle de vie et stock ──────────────────────────────────────────

@@ -53,6 +53,7 @@ export class MyOrders {
     // Activé côté API (PAYMENTS_ENABLED + clé Stripe) : GET /orders/payments/config.
     readonly paymentsEnabled = signal(false);
     readonly paymentBusy = signal(false);
+    readonly cancelBusy = signal(false);
     readonly invoiceDownloading = signal<string | null>(null);
     readonly invoiceError = signal('');
 
@@ -104,6 +105,32 @@ export class MyOrders {
 
     isCardPending(order: CustomerOrder): boolean {
         return order.status === 'pending' && order.payment_provider === 'stripe' && order.payment_status === 'pending';
+    }
+
+    canCancel(order: CustomerOrder): boolean {
+        return order.status === 'pending' && order.payment_status !== 'pending' && order.payment_status !== 'completed';
+    }
+
+    cancelOrder(order: CustomerOrder): void {
+        if (!this.canCancel(order) || this.cancelBusy()) return;
+        if (!window.confirm(`Annuler la commande ${order.reference} ?`)) return;
+
+        this.cancelBusy.set(true);
+        this.setPaymentMessage('Annulation de la commande…');
+        this.http.post<CustomerOrder>(`/api/v1/orders/${order.id}/cancel`, {}).subscribe({
+            next: (updated) => {
+                this.cancelBusy.set(false);
+                this.applyOrder(updated);
+                this.setPaymentMessage('La commande a été annulée.', false);
+            },
+            error: (error: unknown) => {
+                this.cancelBusy.set(false);
+                const detail = error instanceof HttpErrorResponse && typeof error.error?.detail === 'string'
+                    ? error.error.detail
+                    : 'La commande n’a pas pu être annulée. Veuillez réessayer.';
+                this.setPaymentMessage(detail, true);
+            }
+        });
     }
 
     openDetails(order: CustomerOrder): void {
