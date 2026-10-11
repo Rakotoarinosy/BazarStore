@@ -2,6 +2,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import { SseClient } from '../../core/realtime/sse-client';
 
 interface OrderItem {
@@ -35,14 +37,16 @@ interface CardCheckout {
 @Component({
     selector: 'app-my-orders',
     standalone: true,
-    imports: [RouterModule],
+    imports: [RouterModule, ConfirmPopupModule],
     templateUrl: './my-orders.html',
-    styleUrl: './my-orders.css'
+    styleUrl: './my-orders.css',
+    providers: [ConfirmationService]
 })
 export class MyOrders {
     private readonly http = inject(HttpClient);
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
+    private readonly confirmation = inject(ConfirmationService);
 
     readonly orders = signal<CustomerOrder[]>([]);
     readonly selectedOrder = signal<CustomerOrder | null>(null);
@@ -111,10 +115,24 @@ export class MyOrders {
         return order.status === 'pending' && order.payment_status !== 'pending' && order.payment_status !== 'completed';
     }
 
-    cancelOrder(order: CustomerOrder): void {
+    cancelOrder(order: CustomerOrder, event: Event): void {
         if (!this.canCancel(order) || this.cancelBusy()) return;
-        if (!window.confirm(`Annuler la commande ${order.reference} ?`)) return;
 
+        this.confirmation.confirm({
+            key: 'cancel-order',
+            target: event.currentTarget as HTMLElement,
+            message: `Voulez-vous vraiment annuler la commande « ${order.reference} » ?`,
+            icon: 'pi pi-exclamation-triangle',
+            rejectLabel: 'Garder ma commande',
+            acceptLabel: 'Oui, annuler',
+            rejectButtonStyleClass: 'p-button-secondary p-button-outlined',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => this.submitCancelOrder(order)
+        });
+    }
+
+    private submitCancelOrder(order: CustomerOrder): void {
+        if (!this.canCancel(order) || this.cancelBusy()) return;
         this.cancelBusy.set(true);
         this.setPaymentMessage('Annulation de la commande…');
         this.http.post<CustomerOrder>(`/api/v1/orders/${order.id}/cancel`, {}).subscribe({

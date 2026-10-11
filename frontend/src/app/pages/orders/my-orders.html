@@ -1,4 +1,5 @@
 <main class="orders-page">
+    <p-confirmpopup key="cancel-order" />
     <header class="orders-header">
         <a class="orders-brand" routerLink="/" aria-label="BazarStore, accueil">
             <span class="orders-brand-mark" aria-hidden="true"></span>
@@ -119,7 +120,7 @@
                 }
                 @if (canCancel(order)) {
                     <div class="order-cancel-actions">
-                        <button class="order-cancel-button" type="button" [disabled]="cancelBusy()" (click)="cancelOrder(order)">
+                        <button class="order-cancel-button" type="button" [disabled]="cancelBusy()" (click)="cancelOrder(order, $event)">
                             @if (cancelBusy()) { <i class="pi pi-spin pi-spinner"></i> Annulation… } @else { <i class="pi pi-times"></i> Annuler la commande }
                         </button>
                         <small>Possible tant que la commande est en attente et qu’aucun paiement n’est en cours.</small>
