@@ -141,7 +141,7 @@
                 <div><span class="eyebrow">SÉLECTION</span><h2>Les trouvailles du moment</h2></div>
                 <a class="text-link" href="#categories" (click)="selectCategory('')">Tout le catalogue <i class="pi pi-arrow-right"></i></a>
             </div>
-            <div class="catalog-notice"><i class="pi pi-info-circle"></i> Catalogue et prix affichés en ariary (Ar).</div>
+            <div class="catalog-notice"><i class="pi pi-info-circle"></i> Catalogue et prix affichés en ariary (Ar). Les favoris sont enregistrés anonymement pour mesurer l’intérêt pour les produits.</div>
             <div class="filter-row" aria-label="Filtrer les produits">
                 <button type="button" [class.active]="selectedCategory === ''" (click)="selectCategory('')">Tout voir</button>
                 @for (category of visibleCategories; track category.id) {
@@ -172,7 +172,7 @@
                             } @else if (product.quantity <= 5) {
                                 <span class="product-badge">Coup de cœur</span>
                             }
-                            <button class="favorite-button" type="button" (click)="toggleFavorite(product.id)" [attr.aria-label]="isFavorite(product.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'" [attr.aria-pressed]="isFavorite(product.id)">
+                            <button class="favorite-button" type="button" (click)="toggleFavorite(product.id)" [disabled]="!favoritesLoaded || favoriteBusyIds.has(product.id)" [attr.aria-label]="isFavorite(product.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'" [attr.aria-pressed]="isFavorite(product.id)" [attr.aria-busy]="!favoritesLoaded || favoriteBusyIds.has(product.id)">
                                 <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
                             </button>
                             @if (product.inventory_status !== 'OUTOFSTOCK') {

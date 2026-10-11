@@ -1,6 +1,6 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { EMPTY, catchError, finalize } from 'rxjs';
 import { MessageService } from 'primeng/api';
@@ -32,6 +32,7 @@ export class Landing {
     readonly pendingOrdersCount = computed(() => this.myOrders().filter((order) => order.status !== 'completed').length);
     private readonly messages = inject(MessageService);
     private readonly cartStorageKey = 'bazarstore.pending-cart';
+    private readonly visitorId = this.getOrCreateVisitorId();
     readonly heroMainImage = signal<string | null>(null);
     readonly heroSecondaryImage = signal<string | null>(null);
 
@@ -40,6 +41,8 @@ export class Landing {
     selectedCategory = '';
     cartItems: { product: CatalogProduct; quantity: number }[] = [];
     favoriteIds = new Set<string>();
+    favoriteBusyIds = new Set<string>();
+    favoritesLoaded = false;
     cartOpen = false;
     orderSubmitting = false;
     newsletterEmail = '';
@@ -50,6 +53,7 @@ export class Landing {
 
     constructor() {
         this.restoreCart();
+        this.loadFavoriteIds();
         this.catalog.load(true).subscribe();
         this.http.get<{ hero_main_image_url: string | null; hero_secondary_image_url: string | null }>('/api/v1/storefront/settings').subscribe({
             next: (settings) => {
@@ -187,19 +191,81 @@ export class Landing {
     }
 
     toggleFavorite(productId: string | undefined): void {
-        if (!productId) {
-            return;
-        }
+        if (!productId || this.favoriteBusyIds.has(productId)) return;
 
-        if (this.favoriteIds.has(productId)) {
-            this.favoriteIds.delete(productId);
-        } else {
-            this.favoriteIds.add(productId);
-        }
+        const wasFavorite = this.favoriteIds.has(productId);
+        const nextFavorites = new Set(this.favoriteIds);
+        if (wasFavorite) nextFavorites.delete(productId);
+        else nextFavorites.add(productId);
+        this.favoriteIds = nextFavorites;
+        this.favoriteBusyIds = new Set(this.favoriteBusyIds).add(productId);
+
+        const request = wasFavorite
+            ? this.http.delete<void>(`/api/v1/reactions/products/${productId}`, { headers: this.visitorHeaders() })
+            : this.http.put<void>(`/api/v1/reactions/products/${productId}`, {}, { headers: this.visitorHeaders() });
+        request.subscribe({
+            next: () => this.finishFavoriteRequest(productId),
+            error: () => {
+                const restoredFavorites = new Set(this.favoriteIds);
+                if (wasFavorite) restoredFavorites.add(productId);
+                else restoredFavorites.delete(productId);
+                this.favoriteIds = restoredFavorites;
+                this.finishFavoriteRequest(productId);
+                this.messages.add({
+                    severity: 'error',
+                    summary: 'Favori non enregistré',
+                    detail: 'Vérifiez votre connexion et réessayez.',
+                    life: 3500
+                });
+            }
+        });
     }
 
     isFavorite(productId: string | undefined): boolean {
         return productId ? this.favoriteIds.has(productId) : false;
+    }
+
+    private loadFavoriteIds(): void {
+        this.http.get<string[]>('/api/v1/reactions/mine', { headers: this.visitorHeaders() }).subscribe({
+            next: (productIds) => {
+                this.favoriteIds = new Set(productIds);
+                this.favoritesLoaded = true;
+            },
+            error: () => this.favoritesLoaded = true
+        });
+    }
+
+    private finishFavoriteRequest(productId: string): void {
+        const busyIds = new Set(this.favoriteBusyIds);
+        busyIds.delete(productId);
+        this.favoriteBusyIds = busyIds;
+    }
+
+    private visitorHeaders(): HttpHeaders {
+        return new HttpHeaders({ 'X-Visitor-Id': this.visitorId });
+    }
+
+    private getOrCreateVisitorId(): string {
+        const key = 'bazarstore.visitor-id';
+        try {
+            const existing = localStorage.getItem(key);
+            if (existing && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(existing)) {
+                return existing;
+            }
+            const visitorId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                ? crypto.randomUUID()
+                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+                    const random = Math.floor(Math.random() * 16);
+                    return (char === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+                });
+            localStorage.setItem(key, visitorId);
+            return visitorId;
+        } catch {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+                const random = Math.floor(Math.random() * 16);
+                return (char === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+            });
+        }
     }
 
     addToCart(product: CatalogProduct): void {

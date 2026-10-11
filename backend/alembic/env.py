@@ -23,7 +23,7 @@ target_metadata = Base.metadata
 # compatibilité, mais les migrations BazarStore ne gèrent que l'authentification.
 ACTIVE_TABLES = {
     "users", "refresh_tokens", "product_categories", "products", "storefront_settings",
-    "orders", "order_items",
+    "orders", "order_items", "product_reactions",
 }
 
 

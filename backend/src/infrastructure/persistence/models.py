@@ -122,6 +122,22 @@ class ProductModel(Base):
     category: Mapped[ProductCategoryModel] = relationship(back_populates="products")
 
 
+class ProductReactionModel(Base):
+    """État du favori d'un navigateur anonyme pour un produit (avec historique minimal)."""
+
+    __tablename__ = "product_reactions"
+
+    product_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("products.id", ondelete="CASCADE"), primary_key=True
+    )
+    visitor_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(), nullable=False)
+    first_reacted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    last_reacted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    __table_args__ = (Index("ix_product_reactions_last_reacted_at", "last_reacted_at"),)
+
+
 # ─── commandes ─────────────────────────────────────────────────────
 
 

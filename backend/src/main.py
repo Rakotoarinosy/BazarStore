@@ -13,6 +13,7 @@ from src.features.auth.router import router as auth_router
 from src.features.category.router import router as category_router
 from src.features.order.router import router as order_router
 from src.features.product.router import router as product_router
+from src.features.reaction.router import router as reaction_router
 from src.features.stats.router import router as stats_router
 from src.features.storefront.router import router as storefront_router
 from src.features.user.router import router as user_router
@@ -27,6 +28,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     user_router,
     category_router,
     product_router,
+    reaction_router,
     order_router,
     storefront_router,
     stats_router,
@@ -61,7 +63,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins,  # jamais "*" : les cookies (credentials) sont activés
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type"],
+        allow_headers=["Authorization", "Content-Type", "X-Visitor-Id"],
     )
     register_exception_handlers(app)
 
