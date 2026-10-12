@@ -1,6 +1,6 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { EMPTY, catchError, finalize } from 'rxjs';
 import { MessageService } from 'primeng/api';
@@ -8,6 +8,8 @@ import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogProduct, ProductCatalogStore } from '../../core/products/product-catalog.store';
 import { SseClient } from '../../core/realtime/sse-client';
+import { RandomOrder } from '../../shared/random-order';
+import { ScrollTopButton } from '../../shared/scroll-top/scroll-top-button';
 
 interface StorefrontOrderStatus {
     id: string;
@@ -17,7 +19,7 @@ interface StorefrontOrderStatus {
 @Component({
     selector: 'app-landing',
     standalone: true,
-    imports: [RouterModule, ToastModule],
+    imports: [RouterModule, ToastModule, ScrollTopButton],
     templateUrl: './landing.html',
     providers: [MessageService]
 })
@@ -39,17 +41,22 @@ export class Landing {
     readonly currentYear = new Date().getFullYear();
     searchTerm = '';
     selectedCategory = '';
+    selectedProduct: CatalogProduct | null = null;
     cartItems: { product: CatalogProduct; quantity: number }[] = [];
     favoriteIds = new Set<string>();
     favoriteBusyIds = new Set<string>();
     favoritesLoaded = false;
     cartOpen = false;
     orderSubmitting = false;
-    newsletterEmail = '';
-    subscriptionMessage = '';
+    // Signaux : mis à jour depuis la réponse HTTP, que le mode zoneless ne suit pas seul.
+    readonly newsletterEmail = signal('');
+    readonly newsletterStatus = signal<'idle' | 'sending' | 'success' | 'error'>('idle');
+    readonly subscriptionMessage = signal('');
     loggingOut = false;
     categoryDisplayCount = 6;
     private readonly categoryPageSize = 6;
+    // « Tout voir » est mélangé à chaque visite ; les catégories restent alphabétiques.
+    private readonly randomOrder = new RandomOrder();
 
     constructor() {
         this.restoreCart();
@@ -114,13 +121,15 @@ export class Landing {
     get filteredProducts() {
         const search = this.searchTerm.trim().toLocaleLowerCase();
 
-        return this.catalog.products().filter((product) => {
+        const products = this.catalog.products().filter((product) => {
             const matchesCategory = !this.selectedCategory || product.category_id === this.selectedCategory;
             const matchesSearch =
                 !search || `${product.name} ${product.category_name} ${product.description}`.toLocaleLowerCase().includes(search);
 
             return matchesCategory && matchesSearch;
-        }).slice(0, 8);
+        });
+
+        return (this.selectedCategory ? products : this.randomOrder.sort(products)).slice(0, 12);
     }
 
     get visibleCategories() {
@@ -181,9 +190,48 @@ export class Landing {
         }
     }
 
+    handleLandingAnchorClick(event: MouseEvent): void {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (!(event.target instanceof Element)) return;
+
+        const anchor = event.target.closest<HTMLAnchorElement>('a[href^="#"]');
+        if (!anchor || anchor.target === '_blank') return;
+
+        const hash = anchor.getAttribute('href');
+        if (!hash || hash === '#') return;
+
+        const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+        if (!target) return;
+
+        event.preventDefault();
+        if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+        target.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'start'
+        });
+    }
+
     selectCategory(category: string): void {
         this.selectedCategory = category;
-        document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('products')?.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'start'
+        });
+    }
+
+    openProductDetails(product: CatalogProduct): void {
+        this.cartOpen = false;
+        this.selectedProduct = product;
+    }
+
+    closeProductDetails(): void {
+        this.selectedProduct = null;
+    }
+
+    addSelectedProductToCart(): void {
+        if (!this.selectedProduct) return;
+        this.addToCart(this.selectedProduct);
+        this.closeProductDetails();
     }
 
     categoryProduct(categoryId: string): CatalogProduct | undefined {
@@ -377,12 +425,35 @@ export class Landing {
 
     updateNewsletterEmail(event: Event): void {
         if (event.target instanceof HTMLInputElement) {
-            this.newsletterEmail = event.target.value;
+            this.newsletterEmail.set(event.target.value);
+            if (this.newsletterStatus() !== 'sending') this.newsletterStatus.set('idle');
         }
     }
 
     subscribe(event: Event): void {
         event.preventDefault();
-        this.subscriptionMessage = 'La newsletter sera bientôt disponible. Aucune inscription n’a été enregistrée.';
+        const email = this.newsletterEmail().trim();
+        if (!email || this.newsletterStatus() === 'sending') return;
+
+        this.newsletterStatus.set('sending');
+        this.subscriptionMessage.set('');
+        this.http
+            .post<{ message: string }>('/api/v1/newsletter/subscriptions', { email })
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: ({ message }) => {
+                    this.newsletterEmail.set('');
+                    this.newsletterStatus.set('success');
+                    this.subscriptionMessage.set(message);
+                },
+                error: (error: HttpErrorResponse) => {
+                    this.newsletterStatus.set('error');
+                    this.subscriptionMessage.set(
+                        error.status === 422
+                            ? 'Cette adresse e-mail ne semble pas valide.'
+                            : 'Inscription momentanément impossible. Réessayez dans quelques instants.'
+                    );
+                }
+            });
     }
 }

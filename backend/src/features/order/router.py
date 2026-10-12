@@ -158,8 +158,8 @@ PAYMENTS_GUARD = [Depends(require_payments_enabled)]
 class OrderPaymentPendingConflictError(DomainError):
     def __init__(self) -> None:
         super().__init__(
-            "Un paiement est déjà en attente de validation sur le téléphone. "
-            "Validez-le ou réessayez dans quelques minutes."
+            "Un paiement est déjà en cours de validation. "
+            "Terminez-le ou vérifiez son statut avant de réessayer."
         )
 
 
@@ -373,7 +373,11 @@ def _confirm_order(order: OrderModel, *, strict: bool) -> None:
 
 def _refresh_mvola_status(order: OrderModel, mvola: MvolaClient) -> None:
     """Relit le statut chez MVola et l'applique à la commande (sans commit)."""
-    if order.payment_status != "pending" or not order.payment_correlation_id:
+    if (
+        order.payment_provider != "mvola"
+        or order.payment_status != "pending"
+        or not order.payment_correlation_id
+    ):
         return
 
     result = mvola.get_status(order.payment_correlation_id)
@@ -400,6 +404,8 @@ def start_mvola_payment(
     if order.status != "pending" or order.payment_status == "completed":
         db.commit()
         raise OrderNotPayableConflictError()
+    if order.payment_status == "pending" and order.payment_provider != "mvola":
+        raise OrderPaymentPendingConflictError()
     if (
         order.payment_status == "pending"
         and order.payment_requested_at is not None
@@ -493,9 +499,11 @@ def _refresh_stripe_status(order: OrderModel, payments: StripePayments) -> None:
 
 @router.get("/payments/config", response_model=PaymentConfigOut)
 def get_payment_config(settings: Settings = Depends(get_settings)) -> PaymentConfigOut:
-    """Indique au frontend si le paiement par carte est proposé."""
+    """Indique au frontend quels moyens de paiement sont configurés."""
     return PaymentConfigOut(
-        card_enabled=settings.payments_enabled and bool(settings.stripe_secret_key)
+        card_enabled=settings.payments_enabled and bool(settings.stripe_secret_key),
+        mvola_enabled=settings.payments_enabled
+        and bool(settings.mvola_consumer_key and settings.mvola_consumer_secret),
     )
 
 
@@ -515,6 +523,8 @@ def start_stripe_payment(
     if order.status != "pending" or order.payment_status == "completed":
         db.commit()
         raise OrderNotPayableConflictError()
+    if order.payment_status == "pending" and order.payment_provider != "stripe":
+        raise OrderPaymentPendingConflictError()
 
     return_url = f"{settings.public_frontend_url.rstrip('/')}/my-orders?order={order.id}"
     checkout = payments.create_checkout(

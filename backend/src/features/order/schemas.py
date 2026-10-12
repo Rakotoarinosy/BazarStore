@@ -91,6 +91,7 @@ class StripeCheckoutOut(BaseModel):
 
 class PaymentConfigOut(BaseModel):
     card_enabled: bool
+    mvola_enabled: bool
 
 
 OrderStatus = Literal["pending", "confirmed", "processing", "shipped", "completed", "cancelled"]

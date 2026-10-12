@@ -235,6 +235,232 @@
     margin-top: 1rem;
 }
 
+.order-payment-options {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 1rem;
+}
+
+.order-payment-start {
+    margin-top: 1rem;
+}
+
+.order-payment-start-button {
+    display: inline-flex;
+    width: 100%;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.7rem 1rem;
+    border: 0;
+    border-radius: 7px;
+    color: #fff;
+    background: #172744;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+
+    &:hover:not(:disabled) {
+        background: #24436f;
+    }
+
+    &:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
+}
+
+.order-payment-choices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.order-payment-choice {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 76px;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #e0e5ec;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+
+    &:hover {
+        border-color: #a9b9cd;
+        background: #fbfcfe;
+    }
+
+    &.selected {
+        border-color: #315e91;
+        background: #f5f8fc;
+        box-shadow: 0 0 0 2px rgb(49 94 145 / 10%);
+    }
+
+    &:focus-within {
+        outline: 2px solid rgb(49 94 145 / 25%);
+        outline-offset: 2px;
+    }
+}
+
+.order-payment-radio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.order-payment-choice-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    border-radius: 10px;
+    font-size: 1.1rem;
+
+    &.stripe-icon {
+        color: #635bff;
+        background: #eeedff;
+    }
+
+    &.mvola-icon {
+        color: #087c61;
+        background: #e7f6ef;
+    }
+}
+
+.order-payment-choice-copy {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    gap: 0.25rem;
+
+    strong {
+        color: #172744;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    small {
+        color: #778197;
+        font-size: 0.7rem;
+        line-height: 1.35;
+    }
+}
+
+.order-payment-choice-check {
+    color: #315e91;
+    font-size: 1rem;
+    opacity: 0;
+
+    .selected & {
+        opacity: 1;
+    }
+}
+
+.order-payment-phone-field {
+    display: grid;
+    gap: 0.4rem;
+
+    label {
+        color: #34415a;
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+
+    small {
+        color: #778197;
+        font-size: 0.7rem;
+    }
+}
+
+.order-payment-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.order-payment-back {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #d9dfe7;
+    border-radius: 7px;
+    color: #58647a;
+    background: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+
+    &:hover:not(:disabled) {
+        color: #172744;
+        background: #f2f4f7;
+    }
+
+    &:disabled {
+        cursor: wait;
+        opacity: 0.6;
+    }
+}
+
+.order-payment-confirm {
+    display: inline-flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.7rem 1rem;
+    border: 0;
+    border-radius: 7px;
+    color: #fff;
+    background: #172744;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+
+    &:hover:not(:disabled) {
+        background: #24436f;
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+}
+
+.order-mvola-phone {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 40px;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #d9dfe7;
+    border-radius: 7px;
+    color: #172744;
+    background: #fff;
+    font: inherit;
+    font-size: 0.82rem;
+
+    &:focus {
+        border-color: #315e91;
+        outline: 2px solid rgb(49 94 145 / 14%);
+    }
+}
+
 .order-pay-button {
     display: inline-flex;
     align-items: center;
@@ -638,4 +864,6 @@
 
     .order-dialog { padding: 1rem; }
     .order-cancel-actions { align-items: flex-end; flex-direction: column; }
+    .order-payment-choices { grid-template-columns: 1fr; }
+    .order-payment-footer { align-items: stretch; flex-direction: column-reverse; }
 }

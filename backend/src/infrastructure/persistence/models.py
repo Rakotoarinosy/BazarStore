@@ -138,6 +138,18 @@ class ProductReactionModel(Base):
     __table_args__ = (Index("ix_product_reactions_last_reacted_at", "last_reacted_at"),)
 
 
+class NewsletterSubscriptionModel(Base):
+    """Adresse inscrite à la newsletter de la boutique ; désactivée plutôt que supprimée."""
+
+    __tablename__ = "newsletter_subscriptions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(), nullable=False)
+    subscribed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 # ─── commandes ─────────────────────────────────────────────────────
 
 

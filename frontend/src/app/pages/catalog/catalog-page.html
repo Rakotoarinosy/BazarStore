@@ -1,0 +1,114 @@
+<main class="catalog-page" (keydown.escape)="selectedProduct = null">
+    <header class="catalog-page-header">
+        <a class="brand" routerLink="/" aria-label="BazarStore, accueil">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>Bazar<span>Store</span></span>
+        </a>
+        <a class="catalog-back-link" routerLink="/"><i class="pi pi-arrow-left"></i> Retour à la boutique</a>
+    </header>
+
+    <section class="catalog-page-content" aria-labelledby="catalog-title">
+        <div class="catalog-page-heading">
+            <div>
+                <span class="eyebrow">LE CATALOGUE BAZARSTORE</span>
+                <h1 id="catalog-title">Tous les produits</h1>
+                <p>Explorez toute la sélection et découvrez vos prochaines trouvailles.</p>
+            </div>
+            <label class="search-box catalog-page-search">
+                <i class="pi pi-search" aria-hidden="true"></i>
+                <input type="search" placeholder="Rechercher un produit..." aria-label="Rechercher un produit" [value]="searchTerm" (input)="setSearch($event)" />
+            </label>
+        </div>
+
+        <div class="filter-row catalog-page-filters" aria-label="Filtrer les produits par catégorie">
+            <button type="button" [class.active]="!selectedCategory" (click)="selectCategory('')">Tout voir</button>
+            @for (category of catalog.categories(); track category.id) {
+                <button type="button" [class.active]="selectedCategory === category.id" (click)="selectCategory(category.id)">{{ category.name }}</button>
+            }
+        </div>
+
+        @if (selectedCategoryInfo; as category) {
+            @if (category.description) {
+                <div class="selected-category-description">
+                    <i class="pi pi-tag" aria-hidden="true"></i>
+                    <div><strong>{{ category.name }}</strong><p>{{ category.description }}</p></div>
+                </div>
+            }
+        }
+
+        <p class="catalog-count" role="status" aria-live="polite">
+            {{ visibleProducts.length }} produit(s) affiché(s) sur {{ products.length }}
+        </p>
+
+        <div id="catalog-results" class="product-grid catalog-product-grid">
+            @if (catalog.loading() && !catalog.products().length) {
+                <div class="empty-state"><i class="pi pi-spin pi-spinner"></i><strong>Chargement du catalogue…</strong></div>
+            } @else if (catalog.error()) {
+                <div class="empty-state"><i class="pi pi-exclamation-circle"></i><strong>Catalogue momentanément indisponible</strong><span>Réessayez dans quelques instants.</span></div>
+            } @else {
+                @for (product of visibleProducts; track product.id) {
+                    <article class="product-card">
+                        <button class="product-card-open" type="button" (click)="selectedProduct = product" [attr.aria-label]="'Voir les détails de ' + product.name"></button>
+                        <div class="product-image-wrap">
+                            <img [src]="product.image_url || '/demo/images/product/product-placeholder.svg'" [alt]="product.name" loading="lazy" />
+                            @if (product.inventory_status === 'OUTOFSTOCK') {
+                                <span class="product-badge badge-muted">Bientôt disponible</span>
+                            } @else if (product.quantity <= 5) {
+                                <span class="product-badge">Plus que {{ product.quantity }}</span>
+                            }
+                            <button class="favorite-button" type="button" (click)="$event.stopPropagation(); toggleFavorite(product)" [disabled]="!favoritesLoaded || favoriteBusyIds.has(product.id)" [attr.aria-label]="favoriteIds.has(product.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'" [attr.aria-pressed]="favoriteIds.has(product.id)">
+                                <i [class]="favoriteIds.has(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                            </button>
+                            @if (product.inventory_status !== 'OUTOFSTOCK') {
+                                <button class="quick-add" type="button" (click)="$event.stopPropagation(); addToCart(product)"><i class="pi pi-plus"></i> Ajouter au panier</button>
+                            }
+                        </div>
+                        <div class="product-details">
+                            <span class="product-category">{{ product.category_name }}</span>
+                            <h3>{{ product.name }}</h3>
+                            <div class="product-meta"><span class="product-price">{{ formatPrice(product.price) }}</span></div>
+                        </div>
+                    </article>
+                } @empty {
+                    <div class="empty-state"><i class="pi pi-search"></i><strong>Aucun produit trouvé</strong><span>Essayez une autre recherche ou catégorie.</span></div>
+                }
+            }
+        </div>
+
+        @if (notice) { <p class="catalog-notice-message" role="status">{{ notice }}</p> }
+        <div class="catalog-load-more" [class.finished]="!hasMore" #loadMoreSentinel>
+            @if (hasMore) {
+                <span><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Chargement progressif des produits…</span>
+                <button type="button" (click)="loadMore()">Charger 12 produits de plus</button>
+            } @else if (products.length) {
+                <span>Tous les produits sont affichés.</span>
+            }
+        </div>
+    </section>
+
+    <app-scroll-top-button />
+
+    @if (selectedProduct; as product) {
+        <div class="cart-backdrop" (click)="selectedProduct = null"></div>
+        <aside class="cart-drawer product-drawer" role="dialog" aria-modal="true" aria-labelledby="catalog-product-title">
+            <div class="cart-header">
+                <div><span class="eyebrow">DÉTAIL DU PRODUIT</span><h2 id="catalog-product-title">{{ product.name }}</h2></div>
+                <button type="button" class="icon-action" aria-label="Fermer" (click)="selectedProduct = null"><i class="pi pi-times"></i></button>
+            </div>
+            <div class="catalog-product-detail">
+                <div class="catalog-product-detail-image"><img [src]="product.image_url || '/demo/images/product/product-placeholder.svg'" [alt]="product.name" /></div>
+                <span class="product-category">{{ product.category_name }}</span>
+                <strong class="catalog-product-detail-price">{{ formatPrice(product.price) }}</strong>
+                <p>{{ product.description || 'Découvrez ce produit sélectionné par BazarStore.' }}</p>
+                <span class="catalog-stock" [class.out-of-stock]="product.inventory_status === 'OUTOFSTOCK'">
+                    <i [class]="product.inventory_status === 'OUTOFSTOCK' ? 'pi pi-times-circle' : 'pi pi-check-circle'"></i>
+                    {{ product.inventory_status === 'OUTOFSTOCK' ? 'Indisponible' : product.quantity + ' en stock' }}
+                </span>
+            </div>
+            <button class="button button-dark catalog-detail-add" type="button" (click)="addToCart(product)" [disabled]="product.inventory_status === 'OUTOFSTOCK'">
+                <i class="pi pi-shopping-bag"></i> Ajouter au panier
+            </button>
+            @if (notice) { <p class="catalog-notice-message" role="status">{{ notice }}</p> }
+        </aside>
+    }
+</main>

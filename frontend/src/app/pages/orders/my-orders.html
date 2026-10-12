@@ -119,22 +119,83 @@
                 }
                 @if (order.payment_status === 'completed') {
                     <p class="order-payment-message order-payment-success" role="status">
-                        <i class="pi pi-check-circle"></i> Commande payée{{ order.payment_provider === 'stripe' ? ' par carte bancaire' : '' }}
+                        <i class="pi pi-check-circle"></i> Commande payée{{ order.payment_provider === 'stripe' ? ' par carte bancaire' : order.payment_provider === 'mvola' ? ' avec MVola' : '' }}
                     </p>
-                } @else if (paymentsEnabled() && order.status === 'pending') {
+                } @else if (order.status === 'pending' && order.payment_status === 'pending') {
                     <div class="order-payment-actions">
-                        <span class="order-payment-label">Paiement sécurisé par carte bancaire (Stripe)</span>
-                        <div class="order-payment-row">
-                            @if (isCardPending(order)) {
+                        <span class="order-payment-status-method">
+                            <i [class]="order.payment_provider === 'mvola' ? 'pi pi-mobile' : 'pi pi-credit-card'" aria-hidden="true"></i>
+                            <span>
+                            {{ order.payment_provider === 'mvola' ? 'Validez la demande sur votre téléphone MVola.' : 'Finalisez le paiement dans la fenêtre Stripe.' }}
+                            </span>
+                        </span>
+                        @if (isMvolaPending(order)) {
+                            <button class="order-check-button" type="button" [disabled]="paymentBusy()" (click)="checkMvolaPayment()">
+                                @if (paymentBusy()) { <i class="pi pi-spin pi-spinner"></i> Vérification… } @else { <i class="pi pi-refresh"></i> Vérifier le paiement MVola }
+                            </button>
+                        } @else if (isCardPending(order)) {
+                            <div class="order-payment-row">
                                 <button class="order-check-button" type="button" [disabled]="paymentBusy()" (click)="checkCardPayment()">
-                                    <i class="pi pi-refresh"></i> J’ai payé, vérifier
+                                    @if (paymentBusy()) { <i class="pi pi-spin pi-spinner"></i> Vérification… } @else { <i class="pi pi-refresh"></i> Vérifier le paiement }
                                 </button>
+                                <button class="order-pay-button" type="button" [disabled]="paymentBusy()" (click)="startCardPayment()">
+                                    <i class="pi pi-credit-card"></i> Réessayer par carte
+                                </button>
+                            </div>
+                        }
+                    </div>
+                } @else if (order.status === 'pending' && (cardEnabled() || mvolaEnabled())) {
+                    @if (!showPaymentMethods()) {
+                        <div class="order-payment-start">
+                            <button class="order-payment-start-button" type="button" [disabled]="paymentBusy()" (click)="beginPaymentSelection()">
+                                <i class="pi pi-lock" aria-hidden="true"></i> Payer maintenant
+                            </button>
+                        </div>
+                    } @else {
+                    <div class="order-payment-options">
+                        <div class="order-payment-choices" role="radiogroup" aria-label="Choisir un moyen de paiement">
+                            @if (cardEnabled()) {
+                                <label class="order-payment-choice" [class.selected]="selectedPaymentMethod() === 'stripe'">
+                                    <input class="order-payment-radio" type="radio" name="order-payment-method" value="stripe" [checked]="selectedPaymentMethod() === 'stripe'" [disabled]="paymentBusy()" (change)="selectPaymentMethod('stripe')" />
+                                    <span class="order-payment-choice-icon stripe-icon"><i class="pi pi-credit-card" aria-hidden="true"></i></span>
+                                    <span class="order-payment-choice-copy">
+                                        <strong>Carte bancaire</strong>
+                                        <small>Paiement sécurisé par Stripe</small>
+                                    </span>
+                                    <i class="pi pi-check-circle order-payment-choice-check" aria-hidden="true"></i>
+                                </label>
                             }
-                            <button class="order-pay-button" type="button" [disabled]="paymentBusy()" (click)="startCardPayment()">
-                                @if (paymentBusy()) { <i class="pi pi-spin pi-spinner"></i> Patientez… } @else { <i class="pi pi-credit-card"></i> Payer {{ formatPrice(order.total_amount) }} }
+                            @if (mvolaEnabled()) {
+                                <label class="order-payment-choice" [class.selected]="selectedPaymentMethod() === 'mvola'">
+                                    <input class="order-payment-radio" type="radio" name="order-payment-method" value="mvola" [checked]="selectedPaymentMethod() === 'mvola'" [disabled]="paymentBusy()" (change)="selectPaymentMethod('mvola')" />
+                                    <span class="order-payment-choice-icon mvola-icon"><i class="pi pi-mobile" aria-hidden="true"></i></span>
+                                    <span class="order-payment-choice-copy">
+                                        <strong>MVola</strong>
+                                        <small>Mobile Money Telma</small>
+                                    </span>
+                                    <i class="pi pi-check-circle order-payment-choice-check" aria-hidden="true"></i>
+                                </label>
+                            }
+                        </div>
+                        @if (selectedPaymentMethod() === 'mvola') {
+                            <div class="order-payment-phone-field">
+                                <label for="mvola-phone">Numéro du compte MVola</label>
+                                <input id="mvola-phone" class="order-mvola-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="034 00 000 00" [ngModel]="mvolaPhone()" (ngModelChange)="mvolaPhone.set($event)" />
+                                <small>Une demande de validation sera envoyée sur ce numéro.</small>
+                            </div>
+                        }
+                        <div class="order-payment-footer">
+                            <button class="order-payment-back" type="button" [disabled]="paymentBusy()" (click)="backToPaymentSummary()">
+                                <i class="pi pi-arrow-left" aria-hidden="true"></i> Retour
+                            </button>
+                            <button class="order-payment-confirm" type="button" [disabled]="paymentBusy() || !selectedPaymentMethod() || (selectedPaymentMethod() === 'mvola' && !mvolaPhone().trim())" (click)="confirmPayment()">
+                                @if (paymentBusy()) { <i class="pi pi-spin pi-spinner"></i> Connexion au paiement… }
+                                @else if (selectedPaymentMethod() === 'mvola') { <i class="pi pi-mobile" aria-hidden="true"></i> Continuer avec MVola · {{ formatPrice(order.total_amount) }} }
+                                @else { <i class="pi pi-lock" aria-hidden="true"></i> Payer {{ formatPrice(order.total_amount) }} par carte }
                             </button>
                         </div>
                     </div>
+                    }
                 }
                 @if (paymentMessage()) {
                     <p class="order-payment-message" [class.order-payment-error]="paymentError()" [class.order-payment-success]="!paymentError()" role="status">{{ paymentMessage() }}</p>

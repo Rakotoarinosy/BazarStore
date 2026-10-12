@@ -1,6 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
@@ -36,6 +37,8 @@ interface CardCheckout {
     order: CustomerOrder;
 }
 
+type PaymentMethod = 'stripe' | 'mvola';
+
 interface OrderTimelineStep {
     label: string;
     icon: string;
@@ -54,7 +57,7 @@ const ORDER_PROGRESS: { status: string; label: string; icon: string }[] = [
 @Component({
     selector: 'app-my-orders',
     standalone: true,
-    imports: [RouterModule, ConfirmPopupModule, TimelineModule],
+    imports: [FormsModule, RouterModule, ConfirmPopupModule, TimelineModule],
     templateUrl: './my-orders.html',
     styleUrl: './my-orders.css',
     providers: [ConfirmationService]
@@ -71,8 +74,12 @@ export class MyOrders {
     readonly errorMessage = signal('');
     readonly paymentMessage = signal('');
     readonly paymentError = signal(false);
-    // Activé côté API (PAYMENTS_ENABLED + clé Stripe) : GET /orders/payments/config.
-    readonly paymentsEnabled = signal(false);
+    // Moyens activés côté API (PAYMENTS_ENABLED + identifiants du fournisseur).
+    readonly cardEnabled = signal(false);
+    readonly mvolaEnabled = signal(false);
+    readonly selectedPaymentMethod = signal<PaymentMethod | null>(null);
+    readonly showPaymentMethods = signal(false);
+    readonly mvolaPhone = signal('');
     readonly paymentBusy = signal(false);
     readonly cancelBusy = signal(false);
     readonly invoiceDownloading = signal<string | null>(null);
@@ -145,6 +152,10 @@ export class MyOrders {
         return order.status === 'pending' && order.payment_provider === 'stripe' && order.payment_status === 'pending';
     }
 
+    isMvolaPending(order: CustomerOrder): boolean {
+        return order.status === 'pending' && order.payment_provider === 'mvola' && order.payment_status === 'pending';
+    }
+
     canCancel(order: CustomerOrder): boolean {
         return order.status === 'pending' && order.payment_status !== 'pending' && order.payment_status !== 'completed';
     }
@@ -189,6 +200,28 @@ export class MyOrders {
         this.setPaymentMessage('');
         this.invoiceError.set('');
         this.selectedOrder.set(order);
+        this.showPaymentMethods.set(false);
+        this.mvolaPhone.set('');
+        this.setDefaultPaymentMethod();
+    }
+
+    selectPaymentMethod(method: PaymentMethod): void {
+        this.selectedPaymentMethod.set(method);
+    }
+
+    beginPaymentSelection(): void {
+        this.setDefaultPaymentMethod();
+        this.showPaymentMethods.set(true);
+    }
+
+    backToPaymentSummary(): void {
+        this.showPaymentMethods.set(false);
+        this.mvolaPhone.set('');
+    }
+
+    confirmPayment(): void {
+        if (this.selectedPaymentMethod() === 'stripe') this.startCardPayment();
+        else if (this.selectedPaymentMethod() === 'mvola') this.startMvolaPayment();
     }
 
     closeDetails(): void {
@@ -217,6 +250,31 @@ export class MyOrders {
     checkCardPayment(): void {
         const order = this.selectedOrder();
         if (order) this.refreshCardPayment(order.id, true);
+    }
+
+    startMvolaPayment(): void {
+        const order = this.selectedOrder();
+        const phone = this.mvolaPhone().trim();
+        if (!order || order.status !== 'pending' || !phone || this.paymentBusy()) return;
+
+        this.paymentBusy.set(true);
+        this.setPaymentMessage('Envoi de la demande de paiement MVola…');
+        this.http.post<CustomerOrder>(`/api/v1/orders/${order.id}/payments/mvola`, { phone }).subscribe({
+            next: (updated) => {
+                this.paymentBusy.set(false);
+                this.applyOrder(updated);
+                this.setPaymentMessage('Demande envoyée. Validez le paiement sur votre téléphone MVola.');
+            },
+            error: (error: unknown) => {
+                this.paymentBusy.set(false);
+                this.setPaymentMessage(this.paymentErrorMessage(error), true);
+            }
+        });
+    }
+
+    checkMvolaPayment(): void {
+        const order = this.selectedOrder();
+        if (order && this.isMvolaPending(order)) this.refreshMvolaPayment(order.id, true);
     }
 
     downloadInvoice(order: CustomerOrder): void {
@@ -262,19 +320,49 @@ export class MyOrders {
         });
     }
 
+    private refreshMvolaPayment(orderId: string, showResult = false): void {
+        this.paymentBusy.set(true);
+        this.http.get<CustomerOrder>(`/api/v1/orders/${orderId}/payments/mvola`).subscribe({
+            next: (updated) => {
+                this.paymentBusy.set(false);
+                this.applyOrder(updated);
+                if (!showResult) return;
+                if (updated.payment_status === 'completed') this.setPaymentMessage('Paiement MVola reçu, merci ! Votre commande est confirmée.');
+                else if (updated.payment_status === 'failed') this.setPaymentMessage('Le paiement MVola a échoué. Vous pouvez réessayer.', true);
+                else this.setPaymentMessage('Paiement en attente. Validez la demande sur votre téléphone puis vérifiez à nouveau.');
+            },
+            error: (error: unknown) => {
+                this.paymentBusy.set(false);
+                if (showResult) this.setPaymentMessage(this.paymentErrorMessage(error), true);
+            }
+        });
+    }
+
     private loadPaymentConfig(): void {
-        this.http.get<{ card_enabled: boolean }>('/api/v1/orders/payments/config').subscribe({
+        this.http.get<{ card_enabled: boolean; mvola_enabled: boolean }>('/api/v1/orders/payments/config').subscribe({
             next: (config) => {
-                this.paymentsEnabled.set(config.card_enabled);
-                if (!config.card_enabled) return;
-                this.handleStripeReturn();
+                this.cardEnabled.set(config.card_enabled);
+                this.mvolaEnabled.set(config.mvola_enabled);
+                this.setDefaultPaymentMethod();
+                if (config.card_enabled) this.handleStripeReturn();
                 // Paiements lancés mais pas encore confirmés (client revenu sans passer par Stripe).
                 for (const order of this.orders()) {
-                    if (this.isCardPending(order)) this.refreshCardPayment(order.id);
+                    if (config.card_enabled && this.isCardPending(order)) this.refreshCardPayment(order.id);
+                    else if (config.mvola_enabled && this.isMvolaPending(order)) this.refreshMvolaPayment(order.id);
                 }
             },
-            error: () => this.paymentsEnabled.set(false)
+            error: () => {
+                this.cardEnabled.set(false);
+                this.mvolaEnabled.set(false);
+                this.selectedPaymentMethod.set(null);
+            }
         });
+    }
+
+    private setDefaultPaymentMethod(): void {
+        if (this.cardEnabled()) this.selectedPaymentMethod.set('stripe');
+        else if (this.mvolaEnabled()) this.selectedPaymentMethod.set('mvola');
+        else this.selectedPaymentMethod.set(null);
     }
 
     /** Retour de Stripe : /my-orders?order=<id>&payment=success|cancelled */
@@ -300,6 +388,11 @@ export class MyOrders {
             orders.some((order) => order.id === updated.id) ? orders.map((order) => (order.id === updated.id ? updated : order)) : [updated, ...orders]
         );
         if (this.selectedOrder()?.id === updated.id) this.selectedOrder.set(updated);
+        if (updated.payment_provider === 'mvola' && updated.payment_status === 'completed') {
+            this.setPaymentMessage('Paiement MVola reçu, merci ! Votre commande est confirmée.');
+        } else if (updated.payment_provider === 'mvola' && updated.payment_status === 'failed') {
+            this.setPaymentMessage('Le paiement MVola a échoué. Vous pouvez réessayer.', true);
+        }
     }
 
     private setPaymentMessage(message: string, isError = false): void {
@@ -309,9 +402,14 @@ export class MyOrders {
 
     private paymentErrorMessage(error: unknown): string {
         if (error instanceof HttpErrorResponse) {
-            if (error.status === 503) return error.error?.detail ?? 'Le paiement par carte est indisponible pour le moment.';
+            if (error.status === 503) return error.error?.detail ?? 'Le paiement en ligne est indisponible pour le moment.';
             if (error.status === 409) return error.error?.detail ?? 'Cette commande ne peut plus être payée.';
             if (error.status === 401) return 'Votre session a expiré. Reconnectez-vous.';
+            if (error.status === 400 || error.status === 422) {
+                const detail = error.error?.detail;
+                if (typeof detail === 'string') return detail;
+                if (Array.isArray(detail) && typeof detail[0]?.msg === 'string') return detail[0].msg;
+            }
         }
         return 'Le paiement n’a pas pu être lancé. Veuillez réessayer.';
     }

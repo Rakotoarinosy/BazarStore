@@ -10,6 +10,7 @@ import { Products } from './app/pages/products/products';
 import { StorefrontMedia } from './app/pages/storefront-media/storefront-media';
 import { MyOrders } from './app/pages/orders/my-orders';
 import { OrderManagement } from './app/pages/orders/order-management';
+import { CatalogPage } from './app/pages/catalog/catalog-page';
 import { adminGuard } from './app/core/auth/admin.guard';
 
 export const appRoutes: Routes = [
@@ -19,6 +20,7 @@ export const appRoutes: Routes = [
         pathMatch: 'full'
     },
     { path: 'my-orders', component: MyOrders },
+    { path: 'catalog', component: CatalogPage },
     {
         path: 'backoffice',
         component: AppLayout,
