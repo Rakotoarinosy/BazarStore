@@ -46,7 +46,8 @@ export class AppMenu {
                     { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/backoffice/users'] },
                     { label: 'Catégories', icon: 'pi pi-fw pi-tags', routerLink: ['/backoffice/categories'] },
                     { label: 'Produits', icon: 'pi pi-fw pi-box', routerLink: ['/backoffice/products'] },
-                    { label: 'Commandes', icon: 'pi pi-fw pi-shopping-cart', routerLink: ['/backoffice/orders'], badgeCount: this.orders.openCount, badgeTitle: 'commande(s) pas encore livrée(s)' }
+                    { label: 'Commandes', icon: 'pi pi-fw pi-shopping-cart', routerLink: ['/backoffice/orders'], badgeCount: this.orders.openCount, badgeTitle: 'commande(s) pas encore livrée(s)' },
+                    { label: 'Newsletter', icon: 'pi pi-fw pi-envelope', routerLink: ['/backoffice/newsletter'] }
                 ]
             },
             {

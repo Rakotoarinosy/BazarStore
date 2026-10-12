@@ -1,0 +1,67 @@
+<p-toast />
+<p-confirmdialog />
+
+<div class="card">
+    <p-toolbar styleClass="mb-5">
+        <ng-template #start>
+            <div class="flex flex-wrap items-center gap-3">
+                <p-button icon="pi pi-download" label="Exporter en CSV" [loading]="exporting()" [disabled]="!total()" (onClick)="exportCsv()" />
+                <p-button icon="pi pi-refresh" label="Actualiser" severity="secondary" [outlined]="true" [loading]="loading()" (onClick)="load()" />
+            </div>
+        </ng-template>
+        <ng-template #end>
+            <span class="p-input-icon-left">
+                <i class="pi pi-search"></i>
+                <input pInputText type="search" placeholder="Rechercher une adresse..." aria-label="Rechercher un abonné" (input)="onSearch($event)" />
+            </span>
+        </ng-template>
+    </p-toolbar>
+
+    <p-table
+        [value]="subscribers()"
+        [lazy]="true"
+        (onLazyLoad)="onLazyLoad($event)"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="rows"
+        [first]="first()"
+        [totalRecords]="total()"
+        [rowHover]="true"
+        dataKey="id"
+        currentPageReportTemplate="{first}–{last} sur {totalRecords} abonnés"
+        [showCurrentPageReport]="true"
+    >
+        <ng-template #caption>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-semibold m-0">Abonnés à la newsletter</h2>
+                    <p class="text-muted-color mt-2 mb-0">L’export CSV contient le lien de désinscription propre à chaque abonné, à insérer dans chaque envoi.</p>
+                </div>
+                <span class="text-muted-color">{{ total() }} abonné(s){{ search() ? ' trouvé(s)' : '' }}</span>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <th>Adresse e-mail</th>
+                <th>Inscrit le</th>
+                <th style="width: 5rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-subscriber>
+            <tr>
+                <td>{{ subscriber.email }}</td>
+                <td>{{ subscriber.subscribed_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="text-right">
+                    <p-button icon="pi pi-user-minus" severity="danger" [text]="true" [rounded]="true" (onClick)="confirmRemove(subscriber)" [ariaLabel]="'Désinscrire ' + subscriber.email" />
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="3" class="text-center text-muted-color py-8">
+                    {{ search() ? 'Aucun abonné ne correspond à cette recherche.' : 'Aucun abonné pour le moment.' }}
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

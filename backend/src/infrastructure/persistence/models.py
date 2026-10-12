@@ -5,6 +5,7 @@ pour que le même code tourne sur SQLite (dev) et PostgreSQL (prod).
 Après tout ajout ou modification : `make revision m="..."` puis `make migrate`.
 """
 
+import secrets
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -32,6 +33,10 @@ from src.infrastructure.persistence.database import Base
 
 def new_id() -> str:
     return str(uuid.uuid4())
+
+
+def new_unsubscribe_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def utc_now() -> datetime:
@@ -148,6 +153,10 @@ class NewsletterSubscriptionModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(), nullable=False)
     subscribed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Jeton aléatoire du lien de désinscription : ne révèle pas l'adresse et ne se devine pas.
+    unsubscribe_token: Mapped[str] = mapped_column(
+        String(64), unique=True, index=True, default=new_unsubscribe_token, nullable=False
+    )
 
 
 # ─── commandes ─────────────────────────────────────────────────────

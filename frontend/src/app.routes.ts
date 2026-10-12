@@ -11,6 +11,8 @@ import { StorefrontMedia } from './app/pages/storefront-media/storefront-media';
 import { MyOrders } from './app/pages/orders/my-orders';
 import { OrderManagement } from './app/pages/orders/order-management';
 import { CatalogPage } from './app/pages/catalog/catalog-page';
+import { NewsletterSubscribers } from './app/pages/newsletter/newsletter-subscribers';
+import { NewsletterUnsubscribe } from './app/pages/newsletter/newsletter-unsubscribe';
 import { adminGuard } from './app/core/auth/admin.guard';
 
 export const appRoutes: Routes = [
@@ -21,6 +23,7 @@ export const appRoutes: Routes = [
     },
     { path: 'my-orders', component: MyOrders },
     { path: 'catalog', component: CatalogPage },
+    { path: 'newsletter/unsubscribe', component: NewsletterUnsubscribe },
     {
         path: 'backoffice',
         component: AppLayout,
@@ -32,6 +35,7 @@ export const appRoutes: Routes = [
             { path: 'categories', component: Categories, canActivate: [adminGuard] },
             { path: 'products', component: Products, canActivate: [adminGuard] },
             { path: 'orders', component: OrderManagement, canActivate: [adminGuard] },
+            { path: 'newsletter', component: NewsletterSubscribers, canActivate: [adminGuard] },
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'documentation', component: Documentation },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }

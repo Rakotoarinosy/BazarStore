@@ -1,0 +1,33 @@
+<main class="unsubscribe-page">
+    <a class="unsubscribe-brand" routerLink="/" aria-label="BazarStore, accueil">Bazar<span>Store</span></a>
+
+    <section class="unsubscribe-card" aria-live="polite">
+        @switch (state()) {
+            @case ('done') {
+                <div class="unsubscribe-icon is-success"><i class="pi pi-check" aria-hidden="true"></i></div>
+                <h1>C’est fait.</h1>
+                <p>Votre adresse a bien été retirée de la newsletter. Vous ne recevrez plus nos e-mails.</p>
+                <p class="unsubscribe-hint">Changé d’avis ? Vous pouvez vous réinscrire à tout moment depuis la boutique.</p>
+                <a class="unsubscribe-button" routerLink="/">Retour à la boutique</a>
+            }
+            @case ('invalid') {
+                <div class="unsubscribe-icon is-error"><i class="pi pi-link" aria-hidden="true"></i></div>
+                <h1>Lien invalide</h1>
+                <p>Ce lien de désinscription n’est pas reconnu. Utilisez le lien présent en bas de l’un de nos e-mails, sans le modifier.</p>
+                <a class="unsubscribe-button" routerLink="/">Retour à la boutique</a>
+            }
+            @default {
+                <div class="unsubscribe-icon"><i class="pi pi-envelope" aria-hidden="true"></i></div>
+                <h1>Se désinscrire de la newsletter</h1>
+                <p>Vous ne recevrez plus nos nouveautés ni nos prochaines sélections par e-mail.</p>
+                @if (state() === 'error') {
+                    <p class="unsubscribe-error" role="alert"><i class="pi pi-exclamation-circle" aria-hidden="true"></i> La désinscription n’a pas abouti. Réessayez dans quelques instants.</p>
+                }
+                <button class="unsubscribe-button" type="button" [disabled]="state() === 'sending'" (click)="unsubscribe()">
+                    @if (state() === 'sending') { Désinscription… <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> } @else { Me désinscrire }
+                </button>
+                <a class="unsubscribe-cancel" routerLink="/">Non, je reste abonné</a>
+            }
+        }
+    </section>
+</main>

@@ -1,0 +1,120 @@
+.unsubscribe-page {
+    --brand-navy: #172744;
+    --brand-blue: #315e91;
+    --brand-orange: #e8893d;
+    --brand-muted: #778197;
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2rem 1rem;
+    background: #fbf8f2;
+    color: #1e293b;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.unsubscribe-brand {
+    color: var(--brand-navy);
+    font-size: 1.15rem;
+    font-weight: 800;
+    text-decoration: none;
+
+    span {
+        color: var(--brand-blue);
+    }
+}
+
+.unsubscribe-card {
+    display: flex;
+    width: 100%;
+    max-width: 26rem;
+    flex-direction: column;
+    align-items: center;
+    padding: 2.25rem 1.75rem;
+    border: 1px solid #ece6db;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 18px 40px rgb(23 39 68 / 8%);
+    text-align: center;
+
+    h1 {
+        margin: 1rem 0 0.5rem;
+        color: var(--brand-navy);
+        font-size: 1.35rem;
+    }
+
+    p {
+        margin: 0 0 1.25rem;
+        color: var(--brand-muted);
+        font-size: 0.85rem;
+        line-height: 1.55;
+    }
+}
+
+.unsubscribe-icon {
+    display: grid;
+    width: 3.25rem;
+    height: 3.25rem;
+    place-items: center;
+    border-radius: 50%;
+    background: #f3eee5;
+    color: var(--brand-orange);
+    font-size: 1.2rem;
+
+    &.is-success {
+        background: #e5f3ea;
+        color: #2f7a4f;
+    }
+
+    &.is-error {
+        background: #f8e7e3;
+        color: #b4412f;
+    }
+}
+
+.unsubscribe-hint {
+    font-size: 0.78rem !important;
+}
+
+.unsubscribe-error {
+    color: #b4412f !important;
+}
+
+.unsubscribe-button {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.2rem;
+    border: 0;
+    border-radius: 8px;
+    background: var(--brand-navy);
+    color: #fff;
+    font: 700 0.85rem 'Plus Jakarta Sans', sans-serif;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:disabled {
+        cursor: progress;
+        opacity: 0.7;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--brand-orange);
+        outline-offset: 2px;
+    }
+}
+
+.unsubscribe-cancel {
+    margin-top: 0.9rem;
+    color: var(--brand-blue);
+    font-size: 0.8rem;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
