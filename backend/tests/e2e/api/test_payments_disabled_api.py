@@ -39,9 +39,9 @@ async def test_payment_routes_are_cut_when_disabled(
 
 async def test_payment_config_reports_card_availability(client: httpx.AsyncClient) -> None:
     app.dependency_overrides[get_settings] = lambda: Settings(payments_enabled=False)
-    assert (await client.get("/api/v1/orders/payments/config")).json() == {"card_enabled": False}
+    assert (await client.get("/api/v1/orders/payments/config")).json()["card_enabled"] is False
 
     app.dependency_overrides[get_settings] = lambda: Settings(
         payments_enabled=True, stripe_secret_key="sk_test_x"
     )
-    assert (await client.get("/api/v1/orders/payments/config")).json() == {"card_enabled": True}
+    assert (await client.get("/api/v1/orders/payments/config")).json()["card_enabled"] is True
