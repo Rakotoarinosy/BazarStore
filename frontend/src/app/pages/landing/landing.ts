@@ -6,6 +6,7 @@ import { EMPTY, catchError, finalize } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../../core/auth/auth.service';
+import { CartItem, CartStore } from '../../core/cart/cart.store';
 import { CatalogProduct, ProductCatalogStore } from '../../core/products/product-catalog.store';
 import { SseClient } from '../../core/realtime/sse-client';
 import { RandomOrder } from '../../shared/random-order';
@@ -29,11 +30,11 @@ export class Landing {
     private readonly sse = inject(SseClient);
     private readonly destroyRef = inject(DestroyRef);
     readonly catalog = inject(ProductCatalogStore);
+    readonly cart = inject(CartStore);
     readonly auth = inject(AuthService);
     private readonly myOrders = signal<StorefrontOrderStatus[]>([]);
     readonly pendingOrdersCount = computed(() => this.myOrders().filter((order) => order.status !== 'completed').length);
     private readonly messages = inject(MessageService);
-    private readonly cartStorageKey = 'bazarstore.pending-cart';
     private readonly visitorId = this.getOrCreateVisitorId();
     readonly heroMainImage = signal<string | null>(null);
     readonly heroSecondaryImage = signal<string | null>(null);
@@ -42,7 +43,6 @@ export class Landing {
     searchTerm = '';
     selectedCategory = '';
     selectedProduct: CatalogProduct | null = null;
-    cartItems: { product: CatalogProduct; quantity: number }[] = [];
     favoriteIds = new Set<string>();
     favoriteBusyIds = new Set<string>();
     favoritesLoaded = false;
@@ -59,7 +59,6 @@ export class Landing {
     private readonly randomOrder = new RandomOrder();
 
     constructor() {
-        this.restoreCart();
         this.loadFavoriteIds();
         this.catalog.load(true).subscribe();
         this.http.get<{ hero_main_image_url: string | null; hero_secondary_image_url: string | null }>('/api/v1/storefront/settings').subscribe({
@@ -172,12 +171,16 @@ export class Landing {
         return ['admin', 'commercial', 'manager'].includes(this.auth.currentUser()?.role ?? '');
     }
 
+    get cartItems(): CartItem[] {
+        return this.cart.items();
+    }
+
     get cartTotal(): number {
-        return this.cartItems.reduce((total, item) => total + (item.product.price ?? 0) * item.quantity, 0);
+        return this.cart.total();
     }
 
     get cartItemCount(): number {
-        return this.cartItems.length;
+        return this.cart.count();
     }
 
     formatPrice(price: number | undefined): string {
@@ -317,14 +320,7 @@ export class Landing {
     }
 
     addToCart(product: CatalogProduct): void {
-        const existing = this.cartItems.find((item) => item.product.id === product.id);
-        if (existing) {
-            existing.quantity += 1;
-            this.cartItems = [...this.cartItems];
-        } else {
-            this.cartItems = [...this.cartItems, { product, quantity: 1 }];
-        }
-        this.persistCart();
+        this.cart.add(product);
         this.messages.add({
             severity: 'success',
             summary: 'Ajouté au panier',
@@ -334,25 +330,17 @@ export class Landing {
     }
 
     changeQuantity(index: number, change: number): void {
-        const item = this.cartItems[index];
-        if (!item) return;
-
-        const quantity = item.quantity + change;
-        this.cartItems = quantity > 0
-            ? this.cartItems.map((entry, itemIndex) => itemIndex === index ? { ...entry, quantity } : entry)
-            : this.cartItems.filter((_, itemIndex) => itemIndex !== index);
-        this.persistCart();
+        this.cart.changeQuantity(index, change);
     }
 
     removeFromCart(index: number): void {
-        this.cartItems = this.cartItems.filter((_, itemIndex) => itemIndex !== index);
-        this.persistCart();
+        this.cart.remove(index);
     }
 
     placeOrder(): void {
         if (!this.cartItems.length || this.orderSubmitting) return;
 
-        this.persistCart();
+        this.cart.persist();
         this.orderSubmitting = true;
         if (this.auth.currentUser()) {
             this.sendOrder();
@@ -373,8 +361,7 @@ export class Landing {
             items: this.cartItems.map(({ product, quantity }) => ({ product_id: product.id, quantity }))
         }).pipe(finalize(() => (this.orderSubmitting = false))).subscribe({
             next: () => {
-                this.cartItems = [];
-                this.clearPersistedCart();
+                this.cart.clear();
                 this.cartOpen = false;
                 void this.router.navigateByUrl('/my-orders');
             },
@@ -392,35 +379,6 @@ export class Landing {
     private goToLogin(): void {
         this.orderSubmitting = false;
         void this.router.navigateByUrl('/auth/login');
-    }
-
-    private restoreCart(): void {
-        try {
-            const saved = sessionStorage.getItem(this.cartStorageKey);
-            if (!saved) return;
-            const parsed = JSON.parse(saved) as Array<{ product: CatalogProduct; quantity: number }>;
-            this.cartItems = Array.isArray(parsed)
-                ? parsed.filter((item) => item?.product?.id && Number.isInteger(item.quantity) && item.quantity > 0)
-                : [];
-        } catch {
-            this.cartItems = [];
-        }
-    }
-
-    private persistCart(): void {
-        try {
-            sessionStorage.setItem(this.cartStorageKey, JSON.stringify(this.cartItems));
-        } catch {
-            // The in-memory cart remains usable if browser storage is unavailable.
-        }
-    }
-
-    private clearPersistedCart(): void {
-        try {
-            sessionStorage.removeItem(this.cartStorageKey);
-        } catch {
-            // The in-memory cart was already cleared.
-        }
     }
 
     updateNewsletterEmail(event: Event): void {
