@@ -27,6 +27,8 @@ export class CatalogPage implements AfterViewInit {
     // du template, donc en mode zoneless seul un signal déclenche le rendu.
     readonly visibleCount = signal(this.batchSize);
     selectedProduct: CatalogProduct | null = null;
+    cartOpen = false;
+    cartItems: { product: CatalogProduct; quantity: number }[] = [];
     notice = '';
     favoriteIds = new Set<string>();
     favoriteBusyIds = new Set<string>();
@@ -38,6 +40,7 @@ export class CatalogPage implements AfterViewInit {
     @ViewChild('loadMoreSentinel') private sentinel?: ElementRef<HTMLElement>;
 
     constructor() {
+        this.restoreCart();
         this.catalog.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
         this.loadFavorites();
         this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
@@ -71,6 +74,14 @@ export class CatalogPage implements AfterViewInit {
 
     get hasMore(): boolean {
         return this.visibleCount() < this.products.length;
+    }
+
+    get cartItemCount(): number {
+        return this.cartItems.reduce((total, item) => total + item.quantity, 0);
+    }
+
+    get cartTotal(): number {
+        return this.cartItems.reduce((total, item) => total + (item.product.price ?? 0) * item.quantity, 0);
     }
 
     get selectedCategoryInfo() {
@@ -133,14 +144,45 @@ export class CatalogPage implements AfterViewInit {
     }
 
     addToCart(product: CatalogProduct): void {
+        const existing = this.cartItems.find((item) => item.product.id === product.id);
+        this.cartItems = existing
+            ? this.cartItems.map((item) => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item)
+            : [...this.cartItems, { product, quantity: 1 }];
+        this.persistCart();
+        this.notice = `${product.name} ajouté au panier.`;
+    }
+
+    changeQuantity(index: number, change: number): void {
+        const item = this.cartItems[index];
+        if (!item) return;
+        const quantity = item.quantity + change;
+        this.cartItems = quantity > 0
+            ? this.cartItems.map((entry, itemIndex) => itemIndex === index ? { ...entry, quantity } : entry)
+            : this.cartItems.filter((_, itemIndex) => itemIndex !== index);
+        this.persistCart();
+    }
+
+    removeFromCart(index: number): void {
+        this.cartItems = this.cartItems.filter((_, itemIndex) => itemIndex !== index);
+        this.persistCart();
+    }
+
+    private restoreCart(): void {
         try {
-            const key = 'bazarstore.pending-cart';
-            const cart = JSON.parse(sessionStorage.getItem(key) ?? '[]') as { product: CatalogProduct; quantity: number }[];
-            const existing = cart.find((item) => item.product.id === product.id);
-            if (existing) existing.quantity += 1;
-            else cart.push({ product, quantity: 1 });
-            sessionStorage.setItem(key, JSON.stringify(cart));
-            this.notice = `${product.name} ajouté au panier.`;
+            const saved = sessionStorage.getItem('bazarstore.pending-cart');
+            if (!saved) return;
+            const parsed = JSON.parse(saved) as Array<{ product: CatalogProduct; quantity: number }>;
+            this.cartItems = Array.isArray(parsed)
+                ? parsed.filter((item) => item?.product?.id && Number.isInteger(item.quantity) && item.quantity > 0)
+                : [];
+        } catch {
+            this.cartItems = [];
+        }
+    }
+
+    private persistCart(): void {
+        try {
+            sessionStorage.setItem('bazarstore.pending-cart', JSON.stringify(this.cartItems));
         } catch {
             this.notice = 'Le panier est momentanément indisponible.';
         }

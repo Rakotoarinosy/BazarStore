@@ -4,6 +4,10 @@
             <span class="brand-mark" aria-hidden="true"></span>
             <span>Bazar<span>Store</span></span>
         </a>
+        <button class="icon-action cart-action" type="button" (click)="selectedProduct = null; cartOpen = !cartOpen" [attr.aria-expanded]="cartOpen" [attr.aria-label]="'Ouvrir le panier, ' + cartItemCount + ' produit(s)'">
+            <i class="pi pi-shopping-bag"></i>
+            @if (cartItemCount) { <span class="cart-count">{{ cartItemCount }}</span> }
+        </button>
         <a class="catalog-back-link" routerLink="/"><i class="pi pi-arrow-left"></i> Retour à la boutique</a>
     </header>
 
@@ -87,6 +91,38 @@
     </section>
 
     <app-scroll-top-button />
+
+    @if (cartOpen) {
+        <div class="cart-backdrop" (click)="cartOpen = false"></div>
+        <aside class="cart-drawer" role="dialog" aria-modal="true" aria-label="Votre panier">
+            <div class="cart-header">
+                <div><span class="eyebrow">BAZARSTORE</span><h2>Votre panier <span>({{ cartItemCount }})</span></h2></div>
+                <button type="button" class="icon-action" aria-label="Fermer le panier" (click)="cartOpen = false"><i class="pi pi-times"></i></button>
+            </div>
+            @if (cartItems.length) {
+                <div class="cart-list">
+                    @for (item of cartItems; track item.product.id; let i = $index) {
+                        <div class="cart-line">
+                            <img [src]="item.product.image_url || '/demo/images/product/product-placeholder.svg'" [alt]="item.product.name" />
+                            <div>
+                                <strong>{{ item.product.name }}</strong><span>{{ formatPrice(item.product.price) }} l’unité</span>
+                                <div class="quantity-control">
+                                    <button type="button" (click)="changeQuantity(i, -1)" [attr.aria-label]="'Retirer une unité de ' + item.product.name">−</button>
+                                    <span>{{ item.quantity }}</span>
+                                    <button type="button" (click)="changeQuantity(i, 1)" [attr.aria-label]="'Ajouter une unité de ' + item.product.name">+</button>
+                                    <button type="button" (click)="removeFromCart(i)" [attr.aria-label]="'Supprimer ' + item.product.name"><i class="pi pi-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="cart-total"><span>Sous-total indicatif</span><strong>{{ formatPrice(cartTotal) }}</strong></div>
+                <a class="button button-dark cart-order-button" routerLink="/" (click)="cartOpen = false">Continuer la commande</a>
+            } @else {
+                <div class="cart-empty"><i class="pi pi-shopping-bag"></i><strong>Votre panier est vide.</strong><button class="button button-dark" type="button" (click)="cartOpen = false">Continuer mes achats</button></div>
+            }
+        </aside>
+    }
 
     @if (selectedProduct; as product) {
         <div class="cart-backdrop" (click)="selectedProduct = null"></div>
