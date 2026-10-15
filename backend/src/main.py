@@ -18,6 +18,7 @@ from src.features.newsletter.router import router as newsletter_router
 from src.features.order.router import router as order_router
 from src.features.product.router import router as product_router
 from src.features.reaction.router import router as reaction_router
+from src.features.shopping_mission.router import router as shopping_mission_router
 from src.features.stats.router import router as stats_router
 from src.features.storefront.router import router as storefront_router
 from src.features.user.router import router as user_router
@@ -47,6 +48,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     order_router,
     storefront_router,
     stats_router,
+    shopping_mission_router,
 ]
 
 

@@ -17,11 +17,25 @@ interface StorefrontOrderStatus {
     status: string;
 }
 
+interface ShoppingMissionRecommendation {
+    product: CatalogProduct;
+    reason: string;
+}
+
+interface ShoppingMissionResult {
+    mission: string;
+    budget: number;
+    total_price: number;
+    summary: string;
+    recommendations: ShoppingMissionRecommendation[];
+}
+
 @Component({
     selector: 'app-landing',
     standalone: true,
     imports: [RouterModule, ToastModule, ScrollTopButton],
     templateUrl: './landing.html',
+    styleUrl: './landing.css',
     providers: [MessageService]
 })
 export class Landing {
@@ -52,6 +66,13 @@ export class Landing {
     readonly newsletterEmail = signal('');
     readonly newsletterStatus = signal<'idle' | 'sending' | 'success' | 'error'>('idle');
     readonly subscriptionMessage = signal('');
+    readonly missionIdeas = ['Reprendre le sport', 'Trouver un cadeau', 'Améliorer mon quotidien'];
+    readonly missionText = signal('');
+    readonly missionBudget = signal(300_000);
+    readonly missionLoading = signal(false);
+    readonly missionResult = signal<ShoppingMissionResult | null>(null);
+    readonly missionError = signal('');
+    readonly missionCartMessage = signal('');
     loggingOut = false;
     categoryDisplayCount = 6;
     private readonly categoryPageSize = 6;
@@ -191,6 +212,67 @@ export class Landing {
         if (event.target instanceof HTMLInputElement) {
             this.searchTerm = event.target.value;
         }
+    }
+
+    updateMissionText(event: Event): void {
+        if (event.target instanceof HTMLTextAreaElement) {
+            this.missionText.set(event.target.value);
+            this.missionError.set('');
+            this.missionResult.set(null);
+        }
+    }
+
+    updateMissionBudget(event: Event): void {
+        if (!(event.target instanceof HTMLInputElement)) return;
+        const budget = Number(event.target.value);
+        if (Number.isInteger(budget) && budget > 0 && budget <= 100_000_000) {
+            this.missionBudget.set(budget);
+            this.missionError.set('');
+            this.missionResult.set(null);
+        }
+    }
+
+    chooseMission(idea: string): void {
+        this.missionText.set(idea);
+        this.missionError.set('');
+        this.missionResult.set(null);
+    }
+
+    requestMission(event: Event): void {
+        event.preventDefault();
+        const mission = this.missionText().trim();
+        const budget = this.missionBudget();
+        if (mission.length < 5 || this.missionLoading()) return;
+
+        this.missionLoading.set(true);
+        this.missionError.set('');
+        this.missionResult.set(null);
+        this.missionCartMessage.set('');
+        this.http
+            .post<ShoppingMissionResult>('/api/v1/shopping-missions/recommendations', { mission, budget })
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                catchError((error: HttpErrorResponse) => {
+                    this.missionError.set(
+                        error.status === 503
+                            ? error.error?.detail ?? 'Le conseiller est momentanément indisponible.'
+                            : 'Impossible de préparer cette sélection. Vérifiez votre mission et votre budget.'
+                    );
+                    return EMPTY;
+                }),
+                finalize(() => this.missionLoading.set(false))
+            )
+            .subscribe((result) => this.missionResult.set(result));
+    }
+
+    addMissionRecommendationsToCart(): void {
+        const result = this.missionResult();
+        if (!result?.recommendations.length) return;
+        result.recommendations.forEach(({ product }) => this.cart.add(product));
+        this.missionResult.set(null);
+        this.missionError.set('');
+        this.missionCartMessage.set('');
+        this.cartOpen = true;
     }
 
     handleLandingAnchorClick(event: MouseEvent): void {

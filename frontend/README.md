@@ -23,7 +23,9 @@ Angular component templates live in adjacent `.html` files, and component logic 
 
 ## Storefront
 
-The public landing page presents a French e-commerce storefront. Its displayed catalog and USD prices come from the existing demo `ProductService` data; search, category filters, favorites, and cart state are currently local to the page. Checkout, newsletter registration, and live product synchronization are not connected yet.
+The public landing page presents the French-language storefront with its catalog and prices loaded from the backend in ariary. The « Panier Mission » prototype lets visitors describe a shopping need and a budget; the backend asks Gemini to suggest available products and verifies the total before displaying the result. The Gemini API key stays in `backend/.env` and is never sent to the browser.
+
+To try the feature locally, start the API from `backend/` with `make dev` after configuring `GEMINI_API_KEY` in `backend/.env`, then start Angular from `frontend/` with `npm start`. Open `http://localhost:4200/` and use the « Panier Mission » section.
 
 ## Development server
 

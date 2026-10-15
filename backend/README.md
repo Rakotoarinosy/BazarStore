@@ -86,6 +86,22 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 Le frontend utilise le proxy Angular local pour appeler ces routes sur `/api/v1/auth`.
 
+## Panier Mission (prototype local)
+
+La page d'accueil propose une mission shopping : le client décrit son besoin et son budget
+en ariary, puis Gemini suggère jusqu'à trois produits du catalogue actif. L'API ne transmet
+à l'IA que les produits disponibles et revérifie les identifiants, le stock et le total avant
+de renvoyer la sélection. La clé Gemini reste côté backend.
+
+Pour l'essayer en local, renseigner `GEMINI_API_KEY` dans `backend/.env`, lancer l'API avec
+`make dev`, puis démarrer le frontend avec `npm start` depuis `frontend/`. Ouvrir
+`http://localhost:4200/` et utiliser la section « Panier Mission ». Sans clé, l'API répond
+503 avec un message indiquant la configuration manquante.
+
+L'endpoint est `POST /api/v1/shopping-missions/recommendations`, avec un JSON de la forme
+`{"mission":"Reprendre le sport","budget":300000}`. Les tests de l'endpoint utilisent un
+recommandeur simulé et n'appellent pas l'API Gemini.
+
 ## Administration des comptes
 
 ```bash

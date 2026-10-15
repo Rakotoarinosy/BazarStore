@@ -15,6 +15,7 @@
             <a href="#home">Accueil</a>
             <a href="#categories">Catégories</a>
             <a href="#products">Nos produits</a>
+            <a href="#mission">Panier Mission</a>
             <a href="#services">Nos engagements</a>
             @if (auth.currentUser()) {
                 <a class="orders-nav-link" routerLink="/my-orders" [attr.aria-label]="'Mes commandes' + (pendingOrdersCount() ? ', ' + pendingOrdersCount() + ' non livrée(s)' : '')">
@@ -122,6 +123,98 @@
                     </button>
                 </div>
             }
+        </section>
+
+        <section id="mission" class="mission-section" aria-labelledby="mission-title">
+            <div class="mission-intro">
+                <span class="eyebrow">VOTRE BUDGET, VOTRE MISSION</span>
+                <h2 id="mission-title">On trouve le panier qui vous ressemble.</h2>
+                <p>Décrivez ce que vous cherchez, fixez votre budget en ariary et laissez BazarStore composer une sélection à partir des produits disponibles.</p>
+                <div class="mission-steps" aria-label="Comment ça marche">
+                    <span><i class="pi pi-comment" aria-hidden="true"></i> Dites-nous votre mission</span>
+                    <span><i class="pi pi-wallet" aria-hidden="true"></i> Fixez votre budget</span>
+                    <span><i class="pi pi-sparkles" aria-hidden="true"></i> Découvrez vos trouvailles</span>
+                </div>
+            </div>
+
+            <div class="mission-panel">
+                <form class="mission-form" (submit)="requestMission($event)">
+                    <label for="mission-text">Quelle est votre mission ?</label>
+                    <textarea
+                        id="mission-text"
+                        rows="3"
+                        minlength="5"
+                        maxlength="500"
+                        required
+                        placeholder="Ex. Je veux reprendre le sport avec des accessoires utiles…"
+                        [value]="missionText()"
+                        (input)="updateMissionText($event)"
+                    ></textarea>
+                    <div class="mission-ideas" aria-label="Idées de mission">
+                        @for (idea of missionIdeas; track idea) {
+                            <button type="button" (click)="chooseMission(idea)">{{ idea }}</button>
+                        }
+                    </div>
+                    <label for="mission-budget">Votre budget maximum (Ar)</label>
+                    <div class="mission-budget-input">
+                        <i class="pi pi-wallet" aria-hidden="true"></i>
+                        <input
+                            id="mission-budget"
+                            type="number"
+                            min="1"
+                            max="100000000"
+                            step="1"
+                            required
+                            [value]="missionBudget()"
+                            (input)="updateMissionBudget($event)"
+                        />
+                        <span>Ar</span>
+                    </div>
+                    <button class="button button-dark mission-submit" type="submit" [disabled]="missionLoading() || missionText().trim().length < 5">
+                        @if (missionLoading()) {
+                            Préparation de votre sélection… <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                        } @else {
+                            Trouver mon panier <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                        }
+                    </button>
+                    <small class="mission-privacy">Les recommandations sont basées sur le catalogue disponible. Le total est vérifié par BazarStore.</small>
+                </form>
+
+                @if (missionError()) {
+                    <p class="mission-feedback is-error" role="alert">{{ missionError() }}</p>
+                }
+                @if (missionResult(); as result) {
+                    <div class="mission-results" aria-live="polite">
+                        <span class="eyebrow">VOTRE SÉLECTION</span>
+                        <h3>{{ result.summary }}</h3>
+                        @if (result.recommendations.length) {
+                            <div class="mission-result-list">
+                                @for (recommendation of result.recommendations; track recommendation.product.id) {
+                                    <article class="mission-result-item">
+                                        <img [src]="recommendation.product.image_url || '/demo/images/product/product-placeholder.svg'" [alt]="recommendation.product.name" />
+                                        <div>
+                                            <span>{{ recommendation.product.category_name }}</span>
+                                            <strong>{{ recommendation.product.name }}</strong>
+                                            <small>{{ recommendation.reason }}</small>
+                                        </div>
+                                        <b>{{ formatPrice(recommendation.product.price) }}</b>
+                                    </article>
+                                }
+                            </div>
+                            <div class="mission-result-total">
+                                <span>Total indicatif · Budget {{ formatPrice(result.budget) }}</span>
+                                <strong>{{ formatPrice(result.total_price) }}</strong>
+                            </div>
+                            <button class="button button-dark mission-submit" type="button" (click)="addMissionRecommendationsToCart()">
+                                Ajouter cette sélection au panier <i class="pi pi-shopping-bag" aria-hidden="true"></i>
+                            </button>
+                            @if (missionCartMessage()) { <p class="mission-feedback" role="status">{{ missionCartMessage() }}</p> }
+                        } @else {
+                            <p class="mission-no-results">Essayez une autre mission ou augmentez votre budget pour explorer d’autres possibilités.</p>
+                        }
+                    </div>
+                }
+            </div>
         </section>
 
         <section id="products" class="section-block products-section">

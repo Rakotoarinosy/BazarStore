@@ -1,0 +1,265 @@
+.mission-section {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+    align-items: center;
+    gap: clamp(2rem, 6vw, 6rem);
+    margin: 2rem auto 5rem;
+    padding: clamp(2rem, 5vw, 4.5rem) max(5vw, calc((100vw - 1240px) / 2));
+    color: #172744;
+    background:
+        radial-gradient(circle at 8% 90%, rgb(232 137 61 / 12%), transparent 32%),
+        linear-gradient(135deg, #f4f7fa 0%, #fff 78%);
+}
+
+.mission-intro h2 {
+    max-width: 620px;
+    margin: 0.7rem 0 1rem;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-weight: 750;
+    letter-spacing: -0.045em;
+    line-height: 1.08;
+}
+
+.mission-intro > p {
+    max-width: 520px;
+    color: #778197;
+    font-size: 0.92rem;
+    line-height: 1.8;
+}
+
+.mission-steps {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 1.8rem;
+    color: #35445c;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.mission-steps span {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.mission-steps i { color: #d97832; }
+
+.mission-panel {
+    padding: clamp(1.2rem, 3vw, 2rem);
+    border: 1px solid #e8ebef;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 22px 60px rgb(23 39 68 / 8%);
+}
+
+.mission-form {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.mission-form label {
+    margin-top: 0.25rem;
+    color: #253650;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.mission-form textarea,
+.mission-budget-input {
+    width: 100%;
+    border: 1px solid #dce2ea;
+    border-radius: 9px;
+    color: #253650;
+    background: #fff;
+    font: inherit;
+}
+
+.mission-form textarea {
+    min-height: 92px;
+    padding: 0.8rem;
+    resize: vertical;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.mission-form textarea:focus,
+.mission-budget-input:focus-within {
+    border-color: #315e91;
+    outline: 3px solid rgb(49 94 145 / 12%);
+}
+
+.mission-ideas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.mission-ideas button {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #e5e9ef;
+    border-radius: 999px;
+    color: #58667a;
+    background: #fafbfc;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.68rem;
+}
+
+.mission-ideas button:hover {
+    border-color: #e8893d;
+    color: #a44f1b;
+}
+
+.mission-budget-input {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0 0.8rem;
+}
+
+.mission-budget-input i { color: #778197; }
+.mission-budget-input input {
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    outline: 0;
+    color: #253650;
+    background: transparent;
+    font: inherit;
+    font-size: 0.85rem;
+}
+.mission-budget-input span {
+    color: #778197;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.mission-submit {
+    display: flex;
+    width: 100%;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    margin-top: 0.35rem;
+}
+
+.mission-submit:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.mission-privacy {
+    color: #8791a0;
+    font-size: 0.67rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.mission-feedback,
+.mission-no-results {
+    margin: 0.8rem 0 0;
+    color: #21845c;
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.mission-feedback.is-error { color: #b43d43; }
+
+.mission-results {
+    margin-top: 1.5rem;
+    padding-top: 1.3rem;
+    border-top: 1px solid #edf0f3;
+}
+
+.mission-results h3 {
+    margin: 0.5rem 0 1rem;
+    color: #172744;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.mission-result-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.mission-result-item {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem;
+    border: 1px solid #edf0f3;
+    border-radius: 10px;
+}
+
+.mission-result-item img {
+    width: 54px;
+    height: 54px;
+    border-radius: 7px;
+    background: #f3f5f7;
+    object-fit: cover;
+}
+
+.mission-result-item div {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.mission-result-item div span {
+    color: #d97832;
+    font-size: 0.62rem;
+}
+
+.mission-result-item div strong {
+    color: #253650;
+    font-size: 0.77rem;
+}
+
+.mission-result-item div small {
+    color: #778197;
+    font-size: 0.68rem;
+    line-height: 1.4;
+}
+
+.mission-result-item > b {
+    color: #172744;
+    font-size: 0.73rem;
+    white-space: nowrap;
+}
+
+.mission-result-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0 0.6rem;
+    color: #778197;
+    font-size: 0.72rem;
+}
+
+.mission-result-total strong {
+    color: #172744;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 850px) {
+    .mission-section {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1.6rem;
+        margin: 1rem 0 3rem;
+        padding: 3rem max(1rem, 5vw);
+    }
+    .mission-intro h2 { max-width: 540px; }
+    .mission-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+    .mission-steps span { align-items: flex-start; font-size: 0.72rem; line-height: 1.4; }
+}
+
+@media (max-width: 520px) {
+    .mission-steps { grid-template-columns: minmax(0, 1fr); }
+    .mission-result-item { grid-template-columns: 46px minmax(0, 1fr); }
+    .mission-result-item img { width: 46px; height: 46px; }
+    .mission-result-item > b { grid-column: 2; }
+    .mission-result-total { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
+}
