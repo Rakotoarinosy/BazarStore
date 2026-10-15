@@ -120,7 +120,17 @@ async def test_recommendations_reject_unknown_product_ids(
 
 async def test_recommendations_validate_mission_and_budget(
     client: httpx.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from types import SimpleNamespace
+
+    from src.features.shopping_mission import router as shopping_mission_router
+
+    monkeypatch.setattr(
+        shopping_mission_router,
+        "get_settings",
+        lambda: SimpleNamespace(gemini_api_key=None),
+    )
     response = await client.post(
         SHOPPING_MISSIONS,
         json={"mission": "ok", "budget": 0},

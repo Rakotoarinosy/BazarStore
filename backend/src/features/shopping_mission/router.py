@@ -30,12 +30,10 @@ def _gemini_analyzer(api_key: str, model: str) -> ShoppingMissionAnalyzer:
     return GeminiShoppingMissionAnalyzer(api_key, model)
 
 
-def get_shopping_mission_analyzer() -> ShoppingMissionAnalyzer:
+def get_shopping_mission_analyzer() -> ShoppingMissionAnalyzer | None:
     settings = get_settings()
     if not settings.gemini_api_key:
-        raise ShoppingMissionUnavailableError(
-            "L'IA n'est pas configurée : ajoutez GEMINI_API_KEY dans le fichier .env local."
-        )
+        return None
     return _gemini_analyzer(settings.gemini_api_key, settings.gemini_model)
 
 
@@ -43,8 +41,13 @@ def get_shopping_mission_analyzer() -> ShoppingMissionAnalyzer:
 def recommend_for_mission(
     payload: ShoppingMissionIn,
     db: Session = Depends(get_db),
-    analyzer: ShoppingMissionAnalyzer = Depends(get_shopping_mission_analyzer),
+    analyzer: ShoppingMissionAnalyzer | None = Depends(get_shopping_mission_analyzer),
 ) -> ShoppingMissionOut:
+    if analyzer is None:
+        raise ShoppingMissionUnavailableError(
+            "L'IA n'est pas configurée : ajoutez GEMINI_API_KEY dans le fichier .env local."
+        )
+
     products = list(
         db.scalars(
             select(ProductModel)
