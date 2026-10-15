@@ -1,9 +1,9 @@
 """Point d'entrée FastAPI : configuration, CORS, handlers d'erreurs et montage des routers."""
 
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-import json
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +11,7 @@ from scalar_fastapi import get_scalar_api_reference
 from starlette.responses import HTMLResponse
 
 from src.bootstrap import ensure_bootstrap_admin
+from src.domain.user import Role
 from src.features.auth.router import router as auth_router
 from src.features.category.router import router as category_router
 from src.features.newsletter.router import router as newsletter_router
@@ -31,7 +32,6 @@ from src.infrastructure.persistence.models import (
     UserModel,
 )
 from src.infrastructure.security.deps import get_token_service
-from src.domain.user import Role
 from src.shared.errors import register_exception_handlers
 from src.shared.security_headers import SecurityHeadersMiddleware
 
