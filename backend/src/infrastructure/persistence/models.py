@@ -226,6 +226,39 @@ class OrderItemModel(Base):
     )
 
 
+class BackofficeAuditModel(Base):
+    """Historique des actions réalisées par l'équipe dans le back-office."""
+
+    __tablename__ = "backoffice_audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    actor_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    actor_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    action: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    entity_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    entity_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    details: Mapped[str] = mapped_column(String(500), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class PaymentAttemptModel(Base):
+    """Chaque tentative de paiement, conservée même si une nouvelle est lancée."""
+
+    __tablename__ = "payment_attempts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    order_id: Mapped[str] = mapped_column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    order_reference: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+    customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    customer_email: Mapped[str] = mapped_column(String(320), nullable=False)
+    provider: Mapped[str] = mapped_column(String(24), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    provider_reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 # ─── agent ──────────────────────────────────────────────────────────
 
 

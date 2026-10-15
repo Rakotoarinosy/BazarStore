@@ -35,6 +35,7 @@ export const appRoutes: Routes = [
             { path: 'categories', component: Categories, canActivate: [adminGuard] },
             { path: 'products', component: Products, canActivate: [adminGuard] },
             { path: 'orders', component: OrderManagement, canActivate: [adminGuard] },
+            { path: 'history', loadComponent: () => import('./app/pages/orders/backoffice-history').then((module) => module.BackofficeHistory), canActivate: [adminGuard] },
             { path: 'newsletter', component: NewsletterSubscribers, canActivate: [adminGuard] },
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'documentation', component: Documentation },

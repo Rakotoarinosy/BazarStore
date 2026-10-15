@@ -103,3 +103,29 @@ class OrderStatusUpdateIn(BaseModel):
 
 class OpenOrdersCountOut(BaseModel):
     count: int
+
+
+class BackofficeAuditOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    actor_name: str
+    action: str
+    entity_type: str
+    entity_id: str | None
+    details: str
+    created_at: datetime
+
+
+class PaymentAttemptOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    order_id: str
+    order_reference: str
+    customer_name: str
+    customer_email: str
+    provider: str
+    status: str
+    amount: int
+    provider_reference: str | None
+    created_at: datetime
+    updated_at: datetime | None

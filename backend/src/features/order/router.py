@@ -20,6 +20,8 @@ from src.features.order.schemas import (
     MvolaPaymentIn,
     OpenOrdersCountOut,
     OrderCreateIn,
+    BackofficeAuditOut,
+    PaymentAttemptOut,
     OrderOut,
     OrderStatusUpdateIn,
     PaymentConfigOut,
@@ -41,10 +43,13 @@ from src.infrastructure.external.stripe_payments import (
 )
 from src.infrastructure.persistence.database import get_db, get_session_factory
 from src.infrastructure.persistence.models import (
+    BackofficeAuditModel,
     OrderItemModel,
     OrderModel,
+    PaymentAttemptModel,
     ProductCategoryModel,
     ProductModel,
+    UserModel,
 )
 from src.infrastructure.persistence.order_feed import (
     OrderChangeCursor,
@@ -73,6 +78,35 @@ def serialize_order(order: OrderModel) -> OrderOut:
                 else product.image_url
             )
     return output
+
+
+def _sync_payment_attempt(order: OrderModel) -> None:
+    """Répercute un statut fournisseur dans la tentative persistée, sans changer l'historique."""
+    db = object_session(order)
+    if db is None or not order.payment_correlation_id:
+        return
+    attempt = db.scalars(select(PaymentAttemptModel).where(
+        PaymentAttemptModel.order_id == order.id,
+        PaymentAttemptModel.provider_reference == order.payment_correlation_id,
+    )).first()
+    if attempt and attempt.status != order.payment_status:
+        attempt.status = order.payment_status or "failed"
+        attempt.updated_at = datetime.now(UTC)
+
+
+def _record_payment_attempt(db: Session, order: OrderModel, provider: str, reference: str) -> None:
+    # Une relance clôt la tentative précédente : chaque ligne conserve ainsi un état final.
+    previous = db.scalars(select(PaymentAttemptModel).where(
+        PaymentAttemptModel.order_id == order.id, PaymentAttemptModel.status == "pending",
+    )).all()
+    now = datetime.now(UTC)
+    for attempt in previous:
+        attempt.status = "cancelled"
+        attempt.updated_at = now
+    db.add(PaymentAttemptModel(order_id=order.id, order_reference=order.reference,
+                               customer_name=order.customer_name, customer_email=order.customer_email,
+                               provider=provider, status="pending", amount=order.total_amount,
+                               provider_reference=reference))
 
 
 def make_order_poll(
@@ -388,6 +422,7 @@ def _refresh_mvola_status(order: OrderModel, mvola: MvolaClient) -> None:
         _confirm_order(order, strict=False)
     elif result.status == "failed":
         order.payment_status = "failed"
+    _sync_payment_attempt(order)
 
 
 @router.post("/{order_id}/payments/mvola", response_model=OrderOut, dependencies=PAYMENTS_GUARD)
@@ -425,6 +460,7 @@ def start_mvola_payment(
     order.payment_correlation_id = initiation.server_correlation_id
     order.payment_reference = None
     order.payment_requested_at = datetime.now(UTC)
+    _record_payment_attempt(db, order, "mvola", initiation.server_correlation_id)
     db.commit()
     db.refresh(order)
     return OrderOut.model_validate(order)
@@ -477,6 +513,7 @@ def _mark_stripe_paid(order: OrderModel) -> None:
     order.payment_status = "completed"
     order.paid_at = datetime.now(UTC)
     _confirm_order(order, strict=False)
+    _sync_payment_attempt(order)
 
 
 def _refresh_stripe_status(order: OrderModel, payments: StripePayments) -> None:
@@ -495,6 +532,7 @@ def _refresh_stripe_status(order: OrderModel, payments: StripePayments) -> None:
         _mark_stripe_paid(order)
     elif state.expired:
         order.payment_status = "failed"
+    _sync_payment_attempt(order)
 
 
 @router.get("/payments/config", response_model=PaymentConfigOut)
@@ -546,6 +584,7 @@ def start_stripe_payment(
     order.payment_correlation_id = checkout.session_id
     order.payment_reference = None
     order.payment_requested_at = datetime.now(UTC)
+    _record_payment_attempt(db, order, "stripe", checkout.session_id)
     db.commit()
     db.refresh(order)
     return StripeCheckoutOut(checkout_url=checkout.url, order=OrderOut.model_validate(order))
@@ -611,6 +650,75 @@ def count_open_orders(db: Session = Depends(get_db)) -> OpenOrdersCountOut:
     return OpenOrdersCountOut(count=count_open_orders_in(db))
 
 
+@router.get("/manage/audit", response_model=list[BackofficeAuditOut], dependencies=ORDER_STAFF)
+def list_backoffice_audit(db: Session = Depends(get_db)) -> list[BackofficeAuditOut]:
+    rows = db.scalars(
+        select(BackofficeAuditModel)
+        .where(BackofficeAuditModel.entity_type != "auth")
+        .order_by(BackofficeAuditModel.created_at.desc())
+        .limit(500)
+    ).all()
+    output: list[BackofficeAuditOut] = []
+    for row in rows:
+        item = BackofficeAuditOut.model_validate(row)
+        # Rend lisibles les anciennes entrées créées avant le journal explicite.
+        if row.entity_type == "users" and row.details.startswith("PATCH /api/v1/users/"):
+            target_id = row.details.rsplit("/", 1)[-1]
+            target = db.get(UserModel, target_id)
+            if target and not target.is_active:
+                item.action = "Compte désactivé"
+                item.entity_type = "compte client"
+                item.entity_id = target.id
+                item.details = f"Compte client désactivé : {target.name} ({target.email})."
+            elif target:
+                item.action = "Compte modifié"
+                item.entity_type = "compte client"
+                item.entity_id = target.id
+                item.details = f"Compte client modifié : {target.name} ({target.email})."
+        if row.entity_type in {"products", "produit"} and (
+            row.details.startswith("PATCH /api/v1/products/")
+            or row.details.startswith("Produit modifié (référence :")
+        ):
+            product_id = row.entity_id or row.details.rsplit("/", 1)[-1]
+            product = db.get(ProductModel, product_id)
+            if product:
+                item.entity_type = "produit"
+                item.entity_id = product.id
+                if not product.is_active:
+                    item.action = "Produit masqué"
+                    item.details = f"Produit masqué de la boutique : {product.name} ({product.code})."
+                else:
+                    item.action = "Produit modifié"
+                    item.details = f"Produit modifié : {product.name} ({product.code})."
+        output.append(item)
+    return output
+
+
+@router.get("/manage/payments", response_model=list[PaymentAttemptOut], dependencies=ORDER_STAFF)
+def list_payment_history(db: Session = Depends(get_db)) -> list[PaymentAttemptOut]:
+    rows = db.scalars(select(PaymentAttemptModel).order_by(PaymentAttemptModel.created_at.desc()).limit(500)).all()
+    return [PaymentAttemptOut.model_validate(row) for row in rows]
+
+
+@router.patch("/manage/payments/{attempt_id}/cancel", response_model=PaymentAttemptOut)
+def cancel_payment_attempt(
+    attempt_id: str, db: Session = Depends(get_db),
+    user: User = Depends(require_roles(Role.COMMERCIAL)),
+) -> PaymentAttemptOut:
+    attempt = db.get(PaymentAttemptModel, attempt_id)
+    if attempt is None:
+        raise OrderNotFoundError()
+    if attempt.status == "pending":
+        attempt.status = "cancelled"
+        attempt.updated_at = datetime.now(UTC)
+        order = db.get(OrderModel, attempt.order_id)
+        if order and order.payment_correlation_id == attempt.provider_reference:
+            order.payment_status = "cancelled"
+        db.commit()
+        db.refresh(attempt)
+    return PaymentAttemptOut.model_validate(attempt)
+
+
 @router.get(
     "/manage/stream",
     response_class=StreamingResponse,
@@ -638,6 +746,7 @@ def update_order_status(
     order_id: str,
     payload: OrderStatusUpdateIn,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> OrderOut:
     """Fait avancer une commande dans son cycle (confirmée → en préparation → expédiée → livrée)."""
     order = db.scalars(

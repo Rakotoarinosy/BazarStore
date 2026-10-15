@@ -47,6 +47,7 @@ export class AppMenu {
                     { label: 'Catégories', icon: 'pi pi-fw pi-tags', routerLink: ['/backoffice/categories'] },
                     { label: 'Produits', icon: 'pi pi-fw pi-box', routerLink: ['/backoffice/products'] },
                     { label: 'Commandes', icon: 'pi pi-fw pi-shopping-cart', routerLink: ['/backoffice/orders'], badgeCount: this.orders.openCount, badgeTitle: 'commande(s) pas encore livrée(s)' },
+                    { label: 'Journal & paiements', icon: 'pi pi-fw pi-history', routerLink: ['/backoffice/history'] },
                     { label: 'Newsletter', icon: 'pi pi-fw pi-envelope', routerLink: ['/backoffice/newsletter'] }
                 ]
             },
