@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Site | https://bazarstore.rakotoarinosy.com (le site relaie `/api/v1` vers l'API) |
-| API | https://api.bazarstore.rakotoarinosy.com (webhook Stripe, accès direct) |
+| API | https://api.bazarstore.rakotoarinosy.com (webhook de la passerelle de paiement, accès direct) |
 | Serveur | VPS BazarStore (217.76.49.226), dossier `/srv/BazarStore` |
 | Images | `ghcr.io/rakotoarinosy/bazarstore-backend` et `-frontend` (privées) |
 | Stockage des images produit | MinIO du VPS AndaoHiasa (port 9000 filtré sur l'IP du VPS BazarStore) |
@@ -86,8 +86,19 @@ cd /srv/BazarStore
 SECRET=$(openssl rand -hex 32); PG=$(openssl rand -hex 24)
 sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$SECRET|; s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$PG|; s|MOT_DE_PASSE_POSTGRES|$PG|" backend/.env
 chmod 600 backend/.env
-nano backend/.env    # admin, Google, MinIO, Stripe…
+nano backend/.env    # admin, Google, MinIO, passerelle de paiement…
 ```
+
+Le paiement par carte passe par la passerelle `ecommerce_monitoring`. Générer deux secrets
+sur le serveur (`openssl rand -hex 32`) et les reporter des deux côtés :
+
+| BazarStore (`/srv/BazarStore/backend/.env`) | Passerelle (`/srv/ecommerce_monitoring/backend/.env`) |
+| --- | --- |
+| `PAYMENT_GATEWAY_URL=https://ecommerce-api.rakotoarinosy.com` | `GATEWAY_MERCHANT_WEBHOOK_URL=https://api.bazarstore.rakotoarinosy.com/api/v1/orders/payments/gateway/webhook` |
+| `PAYMENT_GATEWAY_API_KEY=<secret 1>` | `GATEWAY_API_KEY=<secret 1>` |
+| `PAYMENT_GATEWAY_WEBHOOK_SECRET=<secret 2>` | `GATEWAY_WEBHOOK_SECRET=<secret 2>` |
+
+Les clés Stripe ne sont plus dans BazarStore : elles sont dans le `.env` de la passerelle.
 
 `GOOGLE_CLIENT_ID` sert aussi au site : son conteneur génère `runtime-config.json` au démarrage.
 
@@ -167,7 +178,7 @@ Les images GHCR sont privées, mais **rien à configurer sur le VPS** : le dépl
 
 ### 8. Services externes
 
-- **Stripe** (dashboard → Developers → Webhooks) : endpoint `https://api.bazarstore.rakotoarinosy.com/api/v1/orders/payments/stripe/webhook`, événement `checkout.session.completed`. Mettre le `whsec_…` dans `STRIPE_WEBHOOK_SECRET`.
+- **Stripe** (dashboard → Developers → Webhooks) : endpoint `https://ecommerce-api.rakotoarinosy.com/payments/webhook` (la passerelle), événement `checkout.session.completed`. Mettre le `whsec_…` dans `STRIPE_WEBHOOK_SECRET` du `.env` de la passerelle.
 - **Google Cloud** (client OAuth) : ajouter `https://bazarstore.rakotoarinosy.com` dans les « Origines JavaScript autorisées ».
 
 ### 9. Premier déploiement

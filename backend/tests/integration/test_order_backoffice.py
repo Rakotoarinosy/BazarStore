@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from src.features.order.router import (
     OrderStatusTransitionConflictError,
     OrderStockConflictError,
-    _mark_stripe_paid,
+    _mark_card_paid,
     count_open_orders,
     list_orders_for_staff,
     update_order_status,
@@ -95,7 +95,7 @@ def test_manual_confirmation_refuses_missing_stock(db_session: Session, order: O
 
 def test_paid_order_deducts_stock_even_when_short(db_session: Session, order: OrderModel) -> None:
     db_session.get(ProductModel, "p-1").quantity = 1
-    _mark_stripe_paid(order)
+    _mark_card_paid(order)
     db_session.commit()
 
     assert order.status == "confirmed"

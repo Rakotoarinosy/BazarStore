@@ -203,7 +203,7 @@ export class OrderManagement implements OnInit {
         this.confirmation.confirm({
             header: 'Annuler la commande',
             message: paid
-                ? `La commande ${order.reference} a déjà été payée. Après l’annulation, pensez à rembourser le client depuis le dashboard Stripe. Continuer ?`
+                ? `La commande ${order.reference} a déjà été payée. Après l’annulation, pensez à rembourser le client (paiement par carte : depuis la passerelle de paiement). Continuer ?`
                 : `Annuler la commande ${order.reference} ? Le stock réservé sera restitué.`,
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Annuler la commande',

@@ -24,7 +24,7 @@ interface CustomerOrder {
     total_amount: number;
     created_at: string;
     updated_at: string | null;
-    payment_provider: 'stripe' | 'mvola' | null;
+    payment_provider: 'card' | 'stripe' | 'mvola' | null;
     payment_status: 'pending' | 'completed' | 'failed' | null;
     payment_reference: string | null;
     paid_at: string | null;
@@ -37,7 +37,7 @@ interface CardCheckout {
     order: CustomerOrder;
 }
 
-type PaymentMethod = 'stripe' | 'mvola';
+type PaymentMethod = 'card' | 'mvola';
 
 interface OrderTimelineStep {
     label: string;
@@ -149,7 +149,7 @@ export class MyOrders {
     }
 
     isCardPending(order: CustomerOrder): boolean {
-        return order.status === 'pending' && order.payment_provider === 'stripe' && order.payment_status === 'pending';
+        return order.status === 'pending' && order.payment_provider === 'card' && order.payment_status === 'pending';
     }
 
     isMvolaPending(order: CustomerOrder): boolean {
@@ -220,7 +220,7 @@ export class MyOrders {
     }
 
     confirmPayment(): void {
-        if (this.selectedPaymentMethod() === 'stripe') this.startCardPayment();
+        if (this.selectedPaymentMethod() === 'card') this.startCardPayment();
         else if (this.selectedPaymentMethod() === 'mvola') this.startMvolaPayment();
     }
 
@@ -234,8 +234,8 @@ export class MyOrders {
         if (!order || this.paymentBusy()) return;
 
         this.paymentBusy.set(true);
-        this.setPaymentMessage('Redirection vers la page de paiement sécurisée Stripe…');
-        this.http.post<CardCheckout>(`/api/v1/orders/${order.id}/payments/stripe`, {}).subscribe({
+        this.setPaymentMessage('Redirection vers la page de paiement sécurisée…');
+        this.http.post<CardCheckout>(`/api/v1/orders/${order.id}/payments/card`, {}).subscribe({
             next: (checkout) => {
                 this.applyOrder(checkout.order);
                 window.location.assign(checkout.checkout_url);
@@ -305,7 +305,7 @@ export class MyOrders {
 
     private refreshCardPayment(orderId: string, showResult = false): void {
         this.paymentBusy.set(true);
-        this.http.get<CustomerOrder>(`/api/v1/orders/${orderId}/payments/stripe`).subscribe({
+        this.http.get<CustomerOrder>(`/api/v1/orders/${orderId}/payments/card`).subscribe({
             next: (updated) => {
                 this.paymentBusy.set(false);
                 this.applyOrder(updated);
@@ -344,8 +344,8 @@ export class MyOrders {
                 this.cardEnabled.set(config.card_enabled);
                 this.mvolaEnabled.set(config.mvola_enabled);
                 this.setDefaultPaymentMethod();
-                if (config.card_enabled) this.handleStripeReturn();
-                // Paiements lancés mais pas encore confirmés (client revenu sans passer par Stripe).
+                if (config.card_enabled) this.handleCardReturn();
+                // Paiements lancés mais pas encore confirmés (client revenu sans passer par la page de paiement).
                 for (const order of this.orders()) {
                     if (config.card_enabled && this.isCardPending(order)) this.refreshCardPayment(order.id);
                     else if (config.mvola_enabled && this.isMvolaPending(order)) this.refreshMvolaPayment(order.id);
@@ -360,13 +360,13 @@ export class MyOrders {
     }
 
     private setDefaultPaymentMethod(): void {
-        if (this.cardEnabled()) this.selectedPaymentMethod.set('stripe');
+        if (this.cardEnabled()) this.selectedPaymentMethod.set('card');
         else if (this.mvolaEnabled()) this.selectedPaymentMethod.set('mvola');
         else this.selectedPaymentMethod.set(null);
     }
 
-    /** Retour de Stripe : /my-orders?order=<id>&payment=success|cancelled */
-    private handleStripeReturn(): void {
+    /** Retour de la passerelle : /my-orders?order=<id>&payment=success|cancelled */
+    private handleCardReturn(): void {
         const params = this.route.snapshot.queryParamMap;
         const order = this.orders().find((candidate) => candidate.id === params.get('order'));
         const result = params.get('payment');

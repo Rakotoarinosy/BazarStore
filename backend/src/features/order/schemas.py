@@ -84,7 +84,7 @@ class MvolaCallbackIn(BaseModel):
     serverCorrelationId: str = Field(min_length=1, max_length=100)  # noqa: N815 (nom imposé par MVola)
 
 
-class StripeCheckoutOut(BaseModel):
+class CardCheckoutOut(BaseModel):
     checkout_url: str
     order: OrderOut
 

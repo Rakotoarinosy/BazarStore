@@ -68,15 +68,15 @@ class Settings(BaseSettings):
     # ─── Paiement en ligne : interrupteur général (carte et MVola) ───
     payments_enabled: bool = False
 
-    # ─── Paiement par carte : Stripe Checkout ───
-    stripe_secret_key: str | None = None
-    # Secret du webhook (whsec_…) : `stripe listen` en local, endpoint du dashboard en production.
-    stripe_webhook_secret: str | None = None
-    # MGA = ariary, accepté tel quel par Stripe (devise sans centimes) : aucune conversion.
-    stripe_currency: str = "mga"
-    # Utilisé seulement si STRIPE_CURRENCY n'est pas « mga » (ex. eur : 1 EUR ≈ 5000 Ar).
-    stripe_ar_per_unit: float = 5000
-    # Adresse du site Angular : Stripe y renvoie le client après le paiement.
+    # ─── Paiement par carte : passerelle ecommerce_monitoring ───
+    # URL de l'API de la passerelle (appel serveur-à-serveur, jamais depuis Angular).
+    # Local : http://localhost:8011 — production : https://ecommerce-api.rakotoarinosy.com
+    payment_gateway_url: str | None = None
+    # Même valeur que GATEWAY_API_KEY de la passerelle.
+    payment_gateway_api_key: str | None = None
+    # Même valeur que GATEWAY_WEBHOOK_SECRET de la passerelle (vérifie les webhooks HMAC).
+    payment_gateway_webhook_secret: str | None = None
+    # Adresse du site Angular : la passerelle y renvoie le client après le paiement.
     public_frontend_url: str = "http://localhost:4300"
 
     # ─── Paiement MVola (Merchant Pay) ───

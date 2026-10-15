@@ -1,5 +1,5 @@
 # CI/CD BazarStore
-#   Pull request → tests backend + build frontend.
+#   Pull request → tests backend + build frontend + contrat avec la passerelle de paiement.
 #   Push sur main → tests, images Docker (GHCR), déploiement sur le VPS, vérification HTTPS.
 #
 # Secrets du dépôt (Settings → Secrets and variables → Actions) :
@@ -65,6 +65,48 @@ jobs:
           --ignore=tests/unit/features/test_create_user.py
           --ignore=tests/unit/features/test_user_use_cases.py
 
+  gateway-contract:
+    name: Contrat · passerelle de paiement (ecommerce_monitoring)
+    # Démarre la vraie passerelle (mode simulateur) et paie / refuse une commande de bout en bout.
+    runs-on: ubuntu-latest
+    env:
+      PAYMENT_GATEWAY_E2E_URL: http://localhost:8011
+      PAYMENT_GATEWAY_E2E_KEY: ci-gateway-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Code de la passerelle (main)
+        uses: actions/checkout@v4
+        with:
+          repository: Rakotoarinosy/ecommerce_monitoring
+          ref: main
+          path: payment-gateway
+          # Dépôt privé : créer un secret GATEWAY_REPO_TOKEN (PAT lecture seule sur ce dépôt).
+          token: ${{ secrets.GATEWAY_REPO_TOKEN || github.token }}
+
+      - name: Démarrage de la passerelle
+        working-directory: payment-gateway
+        env:
+          GATEWAY_API_KEY: ci-gateway-key
+        run: docker compose -f docker-compose.gateway.yml up -d --build --wait
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Tests de contrat
+        working-directory: backend
+        run: |
+          uv sync --frozen --extra dev
+          uv run pytest -q tests/contract -rs
+
+      - name: Journaux de la passerelle (échec)
+        if: failure()
+        working-directory: payment-gateway
+        run: docker compose -f docker-compose.gateway.yml logs gateway
+
   frontend:
     name: Frontend · build production
     runs-on: ubuntu-latest
@@ -85,7 +127,7 @@ jobs:
 
   images:
     name: Images Docker (GHCR)
-    needs: [backend, frontend]
+    needs: [backend, frontend, gateway-contract]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

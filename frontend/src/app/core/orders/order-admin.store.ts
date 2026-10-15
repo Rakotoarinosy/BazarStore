@@ -28,7 +28,7 @@ export interface ManagedOrder {
     total_amount: number;
     created_at: string;
     updated_at: string | null;
-    payment_provider: 'stripe' | 'mvola' | null;
+    payment_provider: 'card' | 'stripe' | 'mvola' | null;
     payment_status: 'pending' | 'completed' | 'failed' | null;
     paid_at: string | null;
     invoice_number: string | null;

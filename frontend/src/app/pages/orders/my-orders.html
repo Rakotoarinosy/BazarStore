@@ -119,14 +119,14 @@
                 }
                 @if (order.payment_status === 'completed') {
                     <p class="order-payment-message order-payment-success" role="status">
-                        <i class="pi pi-check-circle"></i> Commande payée{{ order.payment_provider === 'stripe' ? ' par carte bancaire' : order.payment_provider === 'mvola' ? ' avec MVola' : '' }}
+                        <i class="pi pi-check-circle"></i> Commande payée{{ (order.payment_provider === 'card' || order.payment_provider === 'stripe') ? ' par carte bancaire' : order.payment_provider === 'mvola' ? ' avec MVola' : '' }}
                     </p>
                 } @else if (order.status === 'pending' && order.payment_status === 'pending') {
                     <div class="order-payment-actions">
                         <span class="order-payment-status-method">
                             <i [class]="order.payment_provider === 'mvola' ? 'pi pi-mobile' : 'pi pi-credit-card'" aria-hidden="true"></i>
                             <span>
-                            {{ order.payment_provider === 'mvola' ? 'Validez la demande sur votre téléphone MVola.' : 'Finalisez le paiement dans la fenêtre Stripe.' }}
+                            {{ order.payment_provider === 'mvola' ? 'Validez la demande sur votre téléphone MVola.' : 'Finalisez le paiement sur la page de paiement sécurisée.' }}
                             </span>
                         </span>
                         @if (isMvolaPending(order)) {
@@ -155,12 +155,12 @@
                     <div class="order-payment-options">
                         <div class="order-payment-choices" role="radiogroup" aria-label="Choisir un moyen de paiement">
                             @if (cardEnabled()) {
-                                <label class="order-payment-choice" [class.selected]="selectedPaymentMethod() === 'stripe'">
-                                    <input class="order-payment-radio" type="radio" name="order-payment-method" value="stripe" [checked]="selectedPaymentMethod() === 'stripe'" [disabled]="paymentBusy()" (change)="selectPaymentMethod('stripe')" />
+                                <label class="order-payment-choice" [class.selected]="selectedPaymentMethod() === 'card'">
+                                    <input class="order-payment-radio" type="radio" name="order-payment-method" value="card" [checked]="selectedPaymentMethod() === 'card'" [disabled]="paymentBusy()" (change)="selectPaymentMethod('card')" />
                                     <span class="order-payment-choice-icon stripe-icon"><i class="pi pi-credit-card" aria-hidden="true"></i></span>
                                     <span class="order-payment-choice-copy">
                                         <strong>Carte bancaire</strong>
-                                        <small>Paiement sécurisé par Stripe</small>
+                                        <small>Paiement sécurisé · passerelle BazarStore</small>
                                     </span>
                                     <i class="pi pi-check-circle order-payment-choice-check" aria-hidden="true"></i>
                                 </label>
